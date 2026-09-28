@@ -2,7 +2,7 @@
 set -euo pipefail
 mkdir -p .ci/evidence
 collect() {
-  adb pull /sdcard/Android/data/studio.foley.tv/files .ci/evidence/ || true
+  adb pull /sdcard/Pictures/FoleyTest .ci/evidence/ || true
   adb logcat -d -t 1500 > .ci/evidence/logcat.txt || true
 }
 trap collect EXIT

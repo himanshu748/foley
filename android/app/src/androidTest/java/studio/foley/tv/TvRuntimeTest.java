@@ -1,16 +1,26 @@
 package studio.foley.tv;
 
 import android.graphics.Bitmap;
+import android.content.ContentValues;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
+import android.webkit.CookieManager;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.ActivityTestRule;
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -59,9 +69,48 @@ public class TvRuntimeTest {
     private void capture(String name) throws Exception {
         Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("No emulator screenshot",bitmap);
-        File file=new File(activity.getActivity().getExternalFilesDir(null),name+".png");
-        try(FileOutputStream out=new FileOutputStream(file)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}
+        // MediaStore output survives Gradle uninstalling the test application.
+        ContentValues values=new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME,name+".png");
+        values.put(MediaStore.Images.Media.MIME_TYPE,"image/png");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH,"Pictures/FoleyTest");
+        Uri target=activity.getActivity().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
+        assertNotNull(target);
+        try(OutputStream out=activity.getActivity().getContentResolver().openOutputStream(target)){bitmap.compress(Bitmap.CompressFormat.PNG,100,out);}
         bitmap.recycle();
+    }
+    private String string(String expression) throws Exception {
+        return new JSONArray("["+read(expression)+"]").getString(0);
+    }
+    private JSONObject request(String path,String method,String cookie,byte[] body,boolean audio) throws Exception {
+        HttpURLConnection connection=(HttpURLConnection)new URL(BuildConfig.FOLEY_URL+"/api"+path).openConnection();
+        connection.setConnectTimeout(10000);connection.setReadTimeout(10000);
+        connection.setRequestMethod(method);
+        connection.setRequestProperty("Origin",BuildConfig.FOLEY_URL);
+        if(cookie!=null)connection.setRequestProperty("Cookie",cookie);
+        if(body!=null){
+            connection.setRequestProperty("Content-Type",audio?"audio/wav":"application/json");
+            if(audio)connection.setRequestProperty("x-take-name","Generated%20TV%20test%20tone");
+            connection.setDoOutput(true);
+            try(OutputStream out=connection.getOutputStream()){out.write(body);}
+        }
+        try {
+            assertTrue("API status for "+path+": "+connection.getResponseCode(),connection.getResponseCode()<300);
+            JSONObject result=new JSONObject(new String(connection.getInputStream().readAllBytes(),StandardCharsets.UTF_8));
+            String setCookie=connection.getHeaderField("Set-Cookie");
+            if(setCookie!=null)result.put("testCookie",setCookie.split(";",2)[0]);
+            return result;
+        }finally{connection.disconnect();}
+    }
+    private byte[] json(JSONObject value){return value.toString().getBytes(StandardCharsets.UTF_8);}
+    private byte[] tone() {
+        ByteBuffer wav=ByteBuffer.allocate(44+48000*2).order(ByteOrder.LITTLE_ENDIAN);
+        wav.put("RIFF".getBytes(StandardCharsets.US_ASCII)).putInt(wav.capacity()-8);
+        wav.put("WAVEfmt ".getBytes(StandardCharsets.US_ASCII)).putInt(16).putShort((short)1).putShort((short)1);
+        wav.putInt(48000).putInt(96000).putShort((short)2).putShort((short)16);
+        wav.put("data".getBytes(StandardCharsets.US_ASCII)).putInt(48000*2);
+        for(int i=0;i<48000;i++)wav.putShort((short)(Math.sin(i*2*Math.PI*260/48000)*5000));
+        return wav.array();
     }
     @Test public void tvLaunchRemotePairAndResume() throws Exception {
         try {
@@ -87,6 +136,36 @@ public class TvRuntimeTest {
             key(KeyEvent.KEYCODE_DPAD_CENTER);
             until("location.href==="+studio);
             capture("03-tv-resumed");
+
+            // An API fixture crew supplies an explicitly synthetic WAV. This is
+            // playback integration evidence, not a physical phone/microphone claim.
+            String id=string("location.pathname.split('/')[2]");
+            String base="/sessions/"+id;
+            String host=CookieManager.getInstance().getCookie(BuildConfig.FOLEY_URL+"/api"+base);
+            JSONObject state=request(base,"GET",host,null,false);
+            JSONObject crew=request("/join","POST",null,json(new JSONObject().put("code",state.getString("code")).put("name","Synthetic test crew")),false);
+            JSONObject clip=request(base+"/clips","POST",crew.getString("testCookie"),tone(),true);
+            for(String role:new String[]{"footsteps","weather","creature"}){
+                state=request(base,"GET",host,null,false);
+                request(base+"/cast","POST",host,json(new JSONObject().put("role",role).put("clipId",clip.getString("id")).put("revision",state.getInt("revision")).put("volume",0.8)),false);
+            }
+            until("document.body.innerText.includes('Your soundtrack is ready.')");
+            until("document.activeElement.textContent.includes('Pair crew')");
+            key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            until("document.activeElement.textContent.includes('Cast sounds')");
+            key(KeyEvent.KEYCODE_DPAD_RIGHT);
+            until("document.activeElement.textContent.includes('Premiere')");
+            key(KeyEvent.KEYCODE_DPAD_CENTER);
+            until("document.activeElement.textContent.includes('Premiere your film')");
+            key(KeyEvent.KEYCODE_DPAD_CENTER);
+            until("document.querySelector('.screen.is-playing')");
+            until("parseInt(document.querySelector('.screen-top span:last-child').textContent,10)>=3");
+            capture("04-tv-playing-synthetic-audio");
+            until("document.querySelector('.film-credits') && !document.querySelector('.screen.is-playing')");
+            until("document.querySelector('.film-credits').innerText.includes('Synthetic test crew')");
+            capture("05-tv-credits");
+            state=request(base,"GET",host,null,false);
+            assertEquals("Server premiere receipt",1,state.getInt("premieres"));
         }catch(Throwable error){capture("failure");throw error;}
     }
 }

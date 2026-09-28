@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+
+// The deployment origin is build configuration, never a secret-bearing session URL.
+def foleyOrigin = providers.gradleProperty('foleyUrl').getOrElse('')
+def uri
+try { uri = new java.net.URI(foleyOrigin) } catch (Exception ignored) {
+    throw new GradleException('Pass -PfoleyUrl=https://your-deployed-foley.example (an HTTPS origin).')
+}
+if (uri.scheme != 'https' || !uri.host || uri.rawUserInfo || uri.rawQuery || uri.rawFragment ||
+        (uri.rawPath && uri.rawPath != '/') || foleyOrigin.any { Character.isISOControl((char) it) }) {
+    throw new GradleException('Pass -PfoleyUrl=https://your-deployed-foley.example (an HTTPS origin without credentials, path or query).')
+}
+
+android {
+    namespace 'studio.foley.tv'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'studio.foley.tv'
+        minSdk 25
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        buildConfigField 'String', 'FOLEY_URL', '"' + uri.toASCIIString() + '"'
+    }
+    buildFeatures { buildConfig true }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test:rules:1.6.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+}

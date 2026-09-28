@@ -1,0 +1,41 @@
+{
+  "name": "foley-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "node server/index.mjs --dev",
+    "start": "node server/index.mjs",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "test:3d": "node tests/3d-browser.mjs",
+    "test:tv": "node tests/tv-browser.mjs"
+  },
+  "dependencies": {
+    "@fontsource/bricolage-grotesque": "^5.2.8",
+    "@fontsource/dm-sans": "^5.2.8",
+    "express": "^5.1.0",
+    "lucide-react": "^0.468.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.9",
+    "@types/three": "0.185.4",
+    "@vitejs/plugin-react": "^5.0.0",
+    "playwright": "^1.55.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}

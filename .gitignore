@@ -1,0 +1,14 @@
+node_modules/
+dist/
+data/
+.env
+.env.*
+!.env.example
+android/.gradle/
+android/local.properties
+android/**/build/
+.impeccable/review/
+playwright-report/
+.ci/
+.impeccable/
+android/app/src/debug/

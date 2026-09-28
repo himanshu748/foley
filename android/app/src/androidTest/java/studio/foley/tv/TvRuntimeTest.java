@@ -112,7 +112,7 @@ public class TvRuntimeTest {
         for(int i=0;i<48000;i++)wav.putShort((short)(Math.sin(i*2*Math.PI*260/48000)*5000));
         return wav.array();
     }
-    @Test public void tvLaunchRemotePairAndResume() throws Exception {
+    @Test public void tvLaunchRemotePairResumeAndPremiere() throws Exception {
         try {
             assertTrue(activity.getActivity().getPackageManager().hasSystemFeature("android.software.leanback"));
             until("document.activeElement && document.activeElement.textContent.includes('Start a studio')");
@@ -159,7 +159,7 @@ public class TvRuntimeTest {
             until("document.activeElement.textContent.includes('Premiere your film')");
             key(KeyEvent.KEYCODE_DPAD_CENTER);
             until("document.querySelector('.screen.is-playing')");
-            until("parseInt(document.querySelector('.screen-top span:last-child').textContent,10)>=3");
+            until("parseInt(document.querySelector('.screen-top > span:last-child').textContent,10)>=3");
             capture("04-tv-playing-synthetic-audio");
             until("document.querySelector('.film-credits') && !document.querySelector('.screen.is-playing')");
             until("document.querySelector('.film-credits').innerText.includes('Synthetic test crew')");

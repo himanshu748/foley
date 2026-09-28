@@ -6,10 +6,13 @@ import { normalizeAudio } from "./audio.mjs";
 export async function createApp({
   database = process.env.DATA_PATH || "data/foley.sqlite",
   dev = false,
+  trustProxy = process.env.TRUST_PROXY === "1",
 } = {}) {
   const app = express(),
     store = createStore(database);
   app.disable("x-powered-by");
+  // Enable only when a single trusted proxy is the sole route to this server.
+  if (trustProxy) app.set("trust proxy", 1);
   if (!dev)
     app.use((_req, res, next) => {
       res.set(

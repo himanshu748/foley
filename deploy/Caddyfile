@@ -1,0 +1,7 @@
+{$FOLEY_HOST} {
+    encode zstd gzip
+    reverse_proxy app:4331 {
+        # Replace any client-supplied chain; Express trusts exactly one hop.
+        header_up X-Forwarded-For {remote_host}
+    }
+}

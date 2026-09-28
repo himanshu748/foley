@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PUBLIC_URL: https://${FOLEY_HOST:?Set FOLEY_HOST to the public DNS hostname}
+      TRUST_PROXY: "1"
+    volumes:
+      - foley-data:/app/data
+    # Do not publish port 4331: Caddy must be the only inbound route.
+    networks: [backend]
+    mem_limit: 1g
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      FOLEY_HOST: ${FOLEY_HOST:?Set FOLEY_HOST to the public DNS hostname}
+    ports: ["0.0.0.0:80:80", "0.0.0.0:443:443"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [backend]
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+networks:
+  backend:
+volumes:
+  foley-data:
+  caddy-data:
+  caddy-config:

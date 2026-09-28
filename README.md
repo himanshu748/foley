@@ -87,7 +87,7 @@ Open `/tv` for the remote-oriented start screen, saved-studio resume and Pair â†
 
 `android/` contains an Android/Fire OS WebView launcher with landscape orientation, no touchscreen requirement, same-host HTTPS navigation, remote back behavior and no microphone permission. It serves the TV screen; paired phones provide the microphone.
 
-The launcher opens `/tv`, provides a native Retry screen after a main-frame connection error, delegates Back to the app's current playback/confirmation state, and requests audio suspension when the Activity pauses. These source changes have not been compiled or exercised on a Fire OS runtime.
+The launcher opens `/tv`, provides a native Retry screen after a main-frame connection error, delegates Back to the app's current playback/confirmation state, and requests audio suspension when the Activity pauses. The wrapper was compiled and exercised on Googleâ€™s Android TV API 34 emulator on 28 September 2026. Physical Fire OS behavior remains unverified.
 
 Requirements: Android SDK 35, JDK 17 and Gradle 8.11.1 compatible with Android Gradle Plugin 8.9.2. The Gradle wrapper is included with a pinned distribution checksum. Release signing is not configured. See `android/BUILDING.md` for the verified local tool inventory and setup. Then:
 
@@ -97,12 +97,12 @@ cd android
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-`foleyUrl` must be an actual HTTPS deployment. The TV browser and its Web Audio/JavaScript capabilities still need testing on the chosen Fire OS device or permitted simulator. The required original banner/icon are included; release signing and device validation remain. **No APK, Fire TV device run or Amazon submission is claimed.** A desktop browser preview is not the Fire TV track deliverable. Vega is a separate native target and is not implemented by this wrapper.
+`foleyUrl` must be an actual HTTPS deployment. The accepted Android TV emulator completed the remote-to-premiere workflow with synthetic audio; physical-device audio quality and phone microphone capture remain unverified. The required original banner/icon are included; release signing and device validation remain. **A CI-only APK and Android TV emulator run are verified; no physical Fire TV run or Amazon submission is claimed.** A desktop browser preview is not the Fire TV track deliverable. Vega is a separate native target and is not implemented by this wrapper.
 
 ## Remaining external validation
 
 - Deploy at one trusted HTTPS origin and test an actual mobile microphone/codec combination against the TV's playback.
-- Build and run the wrapper on Fire TV or the event's permitted simulator, including D-pad, back, audio output and suspend/resume behavior.
+- Validate actual audio output and Activity suspend/resume on the release target; the CI run covers D-pad, in-app Back/resume and synthetic-audio playback.
 - Playtest with a real small group. Time-to-first-premiere and willingness to remix remain unmeasured.
 - AWS integration is intentionally deferred. No AWS runtime or credit availability is required for this implementation.
 

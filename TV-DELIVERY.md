@@ -1,6 +1,6 @@
 # Foley: TV delivery and demo evidence
 
-Updated 12 September 2026. This is a working delivery record, not a submitted entry or a claim of Fire TV compatibility.
+Updated 28 September 2026. This is a working delivery record, not a submitted entry or a claim of Fire TV compatibility.
 
 ## What the TV controls now do
 
@@ -10,7 +10,7 @@ The start screen can resume the most recently saved, unexpired studio. Browser s
 
 TV mode defaults to **2D · light**, avoiding the Three.js download and GPU scene setup. **3D · cinema** remains an explicit, persistent choice. Switching picture styles keeps the same soundtrack clock and cast; choosing 2D disposes the Three.js scene. This choice responds to the previously measured slow software-rendering result, rather than claiming that 3D is fast on an untested TV.
 
-The Android wrapper opens `/tv`, restricts navigation to its configured HTTPS origin, shows a native focused Retry action after a main-frame connection failure, delegates Back through the app's current state, and requests playback suspension when the Activity pauses. These native changes remain source-level implementation until compiled and exercised on Fire OS.
+The Android wrapper opens `/tv`, restricts navigation to its configured HTTPS origin, shows a native focused Retry action after a main-frame connection failure, delegates Back through the app's current state, and requests playback suspension when the Activity pauses. The wrapper now has compiled Android TV emulator evidence; Activity lifecycle suspension and physical Fire OS behavior still need verification.
 
 ## Reproduce the local checks
 
@@ -29,7 +29,7 @@ Final local run on 12 September: all 10 TV checks and the complete phone workflo
 
 ## Native and official simulator gate
 
-The current native target is Android/Fire OS, documented in `android/BUILDING.md`. No APK or native run has been produced. The installed JDK and Android command-line tools are insufficient without Android Platform 35, Build-Tools, compatible Gradle dependencies and a runtime target.
+The current native target is Android/Fire OS, documented in `android/BUILDING.md`. An APK was built and tested on Google’s Android TV API 34 emulator in GitHub Actions. The local SDK inventory remains incomplete; CI supplies the build tools and emulator.
 
 A separate Vega target could reuse the web experience through Vega's WebView. Amazon's current comparison lists WebView support on Mac M-series virtual devices, while explicitly excluding simulator performance testing. The existing Android Activity is not a Vega `.vpkg`. [Amazon's runtime comparison](https://developer.amazon.com/docs/vega/0.24/run-apps-overview)
 
@@ -39,7 +39,7 @@ Once a Vega app exists and the SDK is installed, the official flow uses `vega vi
 
 ## Proposed 2 minute 45 second demonstration
 
-Capture the actual Fire OS application or official Vega Virtual Device after the platform gate passes. Keep the TV/runtime identification visible at the beginning. Show the phone separately when it records.
+Capture the app on an actual Fire TV device or the FAQ-accepted Android TV emulator. Keep the TV/runtime identification visible at the beginning. Show the phone separately when it records.
 
 | Time | Show | What it establishes |
 | --- | --- | --- |
@@ -68,3 +68,11 @@ These are observations from development, not invented customer testimonials or d
 Specific feedback for the platform documentation: the remote behavior matrix made it possible to distinguish cancellation from leaving the app, and the Vega runtime comparison clearly identifies which WebView/simulator combinations are supported. A complete sample combining same-origin WebView navigation, remote Back, Web Audio suspension and a phone-paired experience would reduce integration uncertainty. That is a documentation-based request, not a report of an observed Fire OS defect. [Fire TV controller behavior](https://developer.amazon.com/docs/fire-tv/controller-behavior-guidelines.html)
 
 Human playtesting, time-to-first-premiere, recognizable mix quality and willingness to remix remain unmeasured. AWS remains deferred.
+
+## Verified Android TV run — 28 September
+
+[Run 36393598341](https://github.com/himanshu748/foley/actions/runs/36393598341) passed on source commit `c9f7bff`. The instrumented test covers launch, remote selection, pairing, D-pad movement, Back and studio resume, synthetic WAV upload through the real normalization API, casting all three roles, full 20-second playback, credits and the server premiere count. The test also verifies that the film remains inside the viewport during playback and credits.
+
+A prior run exposed a focus bug: disabling the Premiere button moved focus to navigation and scrolled the picture offscreen. Playback now transfers focus to the picture before preparation and to Stop after preparation. The successful native screenshots were inspected. The saved H.264 recording is 1920×1080 and 71.814 seconds, without an audio track. Input audio is a generated test fixture, not a phone recording.
+
+The public MIT source is https://github.com/himanshu748/foley. The CI APK targets an ephemeral runner-only HTTPS server and is not a judge-ready deployment. Remaining release work: stable HTTPS hosting, a release-target APK, physical phone recording/audio verification, a public demo under three minutes and Devpost submission.

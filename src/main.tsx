@@ -569,6 +569,11 @@ function Studio({
   const [pictureMode, choosePicture] = usePictureMode();
   const playRequest = useRef(0);
   const playAbort = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (isTV && playing && !preparing && !busy)
+      document.querySelector<HTMLButtonElement>("#premiere-panel button")
+        ?.focus({ preventScroll: true });
+  }, [playing, preparing, busy]);
   useEffect(() => rememberStudio(s), [s.id, s.title, s.expires]);
   const player = useRef<{
     context: AudioContext;
@@ -617,7 +622,13 @@ function Studio({
       stop();
       return;
     }
-    if(isTV)document.querySelector(".screen")?.scrollIntoView({block:"start",behavior:"instant"});
+    if (isTV) {
+      const screen = document.querySelector<HTMLElement>(".screen");
+      screen?.scrollIntoView({ block: "start", behavior: "instant" });
+      // The initiating button becomes disabled while audio is prepared. Keep a
+      // stable focus target so remote-focus recovery does not scroll to the nav.
+      screen?.focus({ preventScroll: true });
+    }
     setPreparing(true);
     const request = ++playRequest.current;
     const abort = new AbortController();
@@ -819,7 +830,7 @@ function Studio({
         </div>
       )}
       <div className="studio-grid">
-        <section className={`screen ${playing ? "is-playing" : ""}`}>
+        <section className={`screen ${playing ? "is-playing" : ""}`} tabIndex={isTV ? -1 : undefined}>
           <div className="screen-top">
             <span>
               <span className={playing ? "live-dot" : "quiet-dot"} />

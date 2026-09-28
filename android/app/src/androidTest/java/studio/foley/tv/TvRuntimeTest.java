@@ -160,9 +160,11 @@ public class TvRuntimeTest {
             key(KeyEvent.KEYCODE_DPAD_CENTER);
             until("document.querySelector('.screen.is-playing')");
             until("parseInt(document.querySelector('.screen-top > span:last-child').textContent,10)>=3");
+            until("document.querySelector('.picture').getBoundingClientRect().top>=0 && document.querySelector('.picture').getBoundingClientRect().bottom<=innerHeight");
             capture("04-tv-playing-synthetic-audio");
             until("document.querySelector('.film-credits') && !document.querySelector('.screen.is-playing')");
             until("document.querySelector('.film-credits').innerText.includes('Synthetic test crew')");
+            until("document.querySelector('.picture').getBoundingClientRect().top>=0 && document.querySelector('.picture').getBoundingClientRect().bottom<=innerHeight");
             capture("05-tv-credits");
             state=request(base,"GET",host,null,false);
             assertEquals("Server premiere receipt",1,state.getInt("premieres"));

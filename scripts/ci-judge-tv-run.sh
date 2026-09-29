@@ -7,8 +7,28 @@ mkdir -p "$evidence"
 recording_pid=''
 audio_pid=''
 console_recording=''
-console_file="${ANDROID_AVD_HOME:-$HOME/.android/avd}/test.avd/console_out/foley-judge-runtime.webm"
+console_name="foley-judge-${GITHUB_RUN_ID:?Run this capture in GitHub Actions}-${GITHUB_RUN_ATTEMPT:-1}.webm"
+console_roots=("$PWD" "${ANDROID_AVD_HOME:-$HOME/.android/avd}/test.avd")
+console_actual_file=''
 adb_cmd() { timeout 30 adb "$@"; }
+locate_console_output() {
+  local stage=$1 root candidate_file
+  local -a matches=()
+  console_actual_file=''
+  candidate_file="$evidence/console-candidates-$stage.txt"
+  : > "$candidate_file"
+  for root in "${console_roots[@]}"; do
+    printf '%s\n' "$root" >> "$evidence/console-output-roots.txt"
+    if [ -d "$root" ]; then
+      timeout 10 find "$root" -maxdepth 5 -type f -name "$console_name" >> "$candidate_file" 2>> "$evidence/console-location-errors.txt" || true
+    fi
+  done
+  mapfile -t matches < <(sort -u "$candidate_file")
+  if [ "${#matches[@]}" -eq 1 ]; then
+    console_actual_file=${matches[0]}
+    printf '%s\n' "$console_actual_file" > "$evidence/console-output-location.txt"
+  fi
+}
 mark_capture_time() {
   python3 - "$1" <<'PY'
 import json, pathlib, sys, time
@@ -24,8 +44,9 @@ stop_capture() {
     adb_cmd emu screenrecord stop > "$evidence/console-stop.txt" 2>&1 || true
     mark_capture_time emulator_console_stop_returned_unix
     console_recording=''
-    if [ -s "$console_file" ]; then
-      cp "$console_file" "$evidence/emulator-av.webm"
+    locate_console_output stopped
+    if [ -n "$console_actual_file" ] && [ -s "$console_actual_file" ]; then
+      cp "$console_actual_file" "$evidence/emulator-av.webm"
     fi
   fi
   if [ -n "$recording_pid" ]; then
@@ -132,12 +153,25 @@ be truncated. Exact sample/frame synchronization has not been measured. Do not d
 them as synced footage.
 TEXT
 # The emulator console recorder includes audio; adb shell screenrecord does not.
-# Current emulator console restricts output to the AVD's console_out directory.
+# SDK versions resolve console output in the process cwd or AVD console_out.
+# Inspect only the actual emulator process cwd plus the documented directories.
+for emulator_pid in $(pgrep -u "$(id -u)" -f '/emulator/(emulator|qemu/)' || true); do
+  emulator_exe=$(readlink -f "/proc/$emulator_pid/exe" || true)
+  case "$emulator_exe" in
+    */emulator|*/qemu-system-*)
+      emulator_cwd=$(readlink -f "/proc/$emulator_pid/cwd" || true)
+      printf 'pid=%s exe=%s cwd=%s\n' "$emulator_pid" "$emulator_exe" "$emulator_cwd" >> "$evidence/emulator-process.txt"
+      if [ -n "$emulator_cwd" ] && [ "$emulator_cwd" != / ]; then console_roots+=("$emulator_cwd"); fi
+      ;;
+  esac
+done
 adb_cmd emu help screenrecord > "$evidence/console-help.txt"
+adb_cmd emu help screenrecord start >> "$evidence/console-help.txt"
 mark_capture_time emulator_console_launch_unix
-adb_cmd emu screenrecord start --time-limit 180 foley-judge-runtime.webm > "$evidence/console-start.txt"
+adb_cmd emu screenrecord start --time-limit 180 "$console_name" > "$evidence/console-start.txt"
 grep -q '^OK' "$evidence/console-start.txt"
 console_recording=1
+locate_console_output started
 mark_capture_time audio_launch_unix
 ffmpeg -nostdin -hide_banner -loglevel warning -y -f pulse -sample_rate 48000 -channels 2 \
   -i foley_tv.monitor -t 480 -c:a pcm_s16le "$evidence/emulator-output.wav" > "$evidence/audio-capture.log" 2>&1 &

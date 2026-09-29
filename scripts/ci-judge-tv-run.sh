@@ -63,6 +63,32 @@ adb_cmd shell getprop ro.build.fingerprint > "$evidence/device.txt"
 adb_cmd shell pm list features >> "$evidence/device.txt"
 adb_cmd shell getprop ro.build.version.sdk >> "$evidence/device.txt"
 adb_cmd shell dumpsys webviewupdate > "$evidence/webview.txt"
+# On a fresh Google TV image, GMS downloads modules after sys.boot_completed and
+# restarts its FontsProvider. Android kills dependent WebViews during that restart.
+# Wait for the first-boot services to settle; do not retry or relax the app test.
+ready_deadline=$((SECONDS + 180))
+stable_samples=0
+last_gms_pid=''
+while (( SECONDS < ready_deadline && stable_samples < 3 )); do
+  gms_pid=$(adb_cmd shell pidof com.google.android.gms.persistent | tr -d '\r' || true)
+  uptime_seconds=$(adb_cmd shell cat /proc/uptime | cut -d. -f1)
+  if [[ "$gms_pid" =~ ^[0-9]+$ ]] && (( uptime_seconds >= 90 )); then
+    if [ "$gms_pid" = "$last_gms_pid" ]; then
+      stable_samples=$((stable_samples + 1))
+    else
+      stable_samples=0
+    fi
+  else
+    stable_samples=0
+  fi
+  printf 'uptime_seconds=%s gms_pid=%s stable_samples=%s\n' "$uptime_seconds" "$gms_pid" "$stable_samples" >> "$evidence/boot-readiness.txt"
+  last_gms_pid=$gms_pid
+  if (( stable_samples < 3 )); then sleep 10; fi
+done
+if (( stable_samples < 3 )); then
+  echo 'Google TV first-boot services did not stabilize within 180 seconds' >&2
+  exit 1
+fi
 adb_cmd install -r judge-build/foley-tv.apk
 adb_cmd install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 installed_apk=$(adb_cmd shell pm path studio.foley.tv | tr -d '\r' | sed -n 's/^package://p')

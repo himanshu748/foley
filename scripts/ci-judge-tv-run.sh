@@ -6,6 +6,8 @@ evidence=judge-build/runtime
 mkdir -p "$evidence"
 recording_pid=''
 audio_pid=''
+console_recording=''
+console_file="${ANDROID_AVD_HOME:-$HOME/.android/avd}/test.avd/console_out/foley-judge-runtime.webm"
 adb_cmd() { timeout 30 adb "$@"; }
 mark_capture_time() {
   python3 - "$1" <<'PY'
@@ -17,6 +19,15 @@ path.write_text(json.dumps(data, indent=2) + '\n')
 PY
 }
 stop_capture() {
+  if [ -n "$console_recording" ]; then
+    mark_capture_time emulator_console_stop_requested_unix
+    adb_cmd emu screenrecord stop > "$evidence/console-stop.txt" 2>&1 || true
+    mark_capture_time emulator_console_stop_returned_unix
+    console_recording=''
+    if [ -s "$console_file" ]; then
+      cp "$console_file" "$evidence/emulator-av.webm"
+    fi
+  fi
   if [ -n "$recording_pid" ]; then
     mark_capture_time screenrecord_stop_requested_unix
     adb_cmd shell pkill -2 screenrecord || true
@@ -107,13 +118,26 @@ This run installs the exact foley-tv.apk from this artifact and verifies its ins
 Runtime: Google Android TV API 34 emulator, public HTTPS with normal TLS validation.
 TvRuntimeTest uses real D-pad events and an API fixture crew with a generated 260 Hz WAV.
 The fixture is not a phone microphone recording. This is not physical Fire TV evidence.
-silent-screenrecord.mp4 is Android screenrecord output, which contains no audio.
-emulator-output.wav captures the emulator's real PulseAudio output, not a replacement track.
+emulator-av.webm is the Android Emulator console's native video/audio recording.
+native-emulator-audio.wav is decoded from that WebM's actual audio stream, not a replacement.
+console-help.txt records the installed emulator's command capabilities. Official docs:
+https://developer.android.com/studio/run/emulator-record-screen
+https://developer.android.com/studio/run/emulator-console
+silent-screenrecord.mp4 is separate Android shell screenrecord output with no audio.
+emulator-output.wav is a diagnostic PulseAudio monitor capture; it may be silent and is
+not the audio verification source. Do not substitute it for verified native WebM audio.
 The recordings start independently. capture-starts.json records host launch, stop and
 instrumentation times. Android screenrecord has a 180-second limit; longer test runs may
 be truncated. Exact sample/frame synchronization has not been measured. Do not describe
 them as synced footage.
 TEXT
+# The emulator console recorder includes audio; adb shell screenrecord does not.
+# Current emulator console restricts output to the AVD's console_out directory.
+adb_cmd emu help screenrecord > "$evidence/console-help.txt"
+mark_capture_time emulator_console_launch_unix
+adb_cmd emu screenrecord start --time-limit 180 foley-judge-runtime.webm > "$evidence/console-start.txt"
+grep -q '^OK' "$evidence/console-start.txt"
+console_recording=1
 mark_capture_time audio_launch_unix
 ffmpeg -nostdin -hide_banner -loglevel warning -y -f pulse -sample_rate 48000 -channels 2 \
   -i foley_tv.monitor -t 480 -c:a pcm_s16le "$evidence/emulator-output.wav" > "$evidence/audio-capture.log" 2>&1 &
@@ -128,13 +152,16 @@ kill -0 "$recording_pid"
 # Do not invoke Gradle here: it could rebuild the APK being offered to judges.
 mark_capture_time instrumentation_started_unix
 set +e
-timeout 420 adb shell am instrument -w \
+timeout 420 adb shell am instrument -w -r \
   -e class studio.foley.tv.TvRuntimeTest \
   studio.foley.tv.test/androidx.test.runner.AndroidJUnitRunner \
   > "$evidence/instrumentation.txt" 2>&1
 instrumentation_status=$?
 set -e
 mark_capture_time instrumentation_ended_unix
+# Give the recorder time to flush the last premiere frames before stopping it.
+# This is post-test footage, not an artificial extension of the film or credits.
+sleep 3
 stop_capture
 export FOLEY_INSTRUMENTATION_STATUS="$instrumentation_status"
 python3 - <<'PY'
@@ -160,6 +187,16 @@ path.write_text(json.dumps(build, indent=2) + '\n')
 if not passed:
     raise SystemExit('Judge APK instrumentation failed; see runtime/instrumentation.txt and junit.xml')
 PY
+test -s "$evidence/emulator-av.webm"
+timeout 30 ffprobe -v error -show_streams -show_format -of json "$evidence/emulator-av.webm" > "$evidence/emulator-av-probe.json"
+python3 - <<'PY'
+import json, pathlib
+probe = json.loads(pathlib.Path('judge-build/runtime/emulator-av-probe.json').read_text())
+assert {'video', 'audio'} <= {s['codec_type'] for s in probe['streams']}, 'Native WebM must contain both video and audio'
+assert float(probe['format']['duration']) >= 20, 'Native recording is shorter than the premiere'
+PY
+timeout 60 ffmpeg -nostdin -hide_banner -loglevel error -y -i "$evidence/emulator-av.webm" \
+  -map 0:a:0 -ar 48000 -ac 2 -c:a pcm_s16le "$evidence/native-emulator-audio.wav"
 test -s "$evidence/silent-screenrecord.mp4"
 timeout 30 ffprobe -v error -show_streams -show_format -of json "$evidence/silent-screenrecord.mp4" > "$evidence/screenrecord-probe.json"
 python3 - <<'PY'
@@ -168,12 +205,12 @@ probe = json.loads(pathlib.Path('judge-build/runtime/screenrecord-probe.json').r
 assert any(s['codec_type'] == 'video' for s in probe['streams']), 'No native video stream captured'
 assert float(probe['format']['duration']) > 1, 'Native recording is empty'
 PY
-# A silent monitor file is not audio proof. Check for the fixture's tone in the
+# A silent capture is not audio proof. Check for the fixture's tone in the
 # actual captured PCM rather than treating successful video playback as audibility.
 python3 - <<'PY'
 import array, hashlib, json, math, pathlib, sys, wave
 root = pathlib.Path('judge-build/runtime')
-path = root / 'emulator-output.wav'
+path = root / 'native-emulator-audio.wav'
 matches = []
 peak = 0
 with wave.open(str(path), 'rb') as audio:
@@ -198,7 +235,7 @@ with wave.open(str(path), 'rb') as audio:
                 matches.append(round(window*0.1, 1))
         window += 1
 detected = len(matches) >= 3
-result = {'capture_source': 'foley_tv.monitor', 'duration_seconds': duration,
+result = {'capture_source': 'Android Emulator console WebM audio stream', 'duration_seconds': duration,
           'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'peak_pcm16': peak,
           'synthetic_fixture_hz': 260, 'matching_100ms_windows': matches,
           'synthetic_tone_detected': detected, 'physical_speaker_or_microphone_verified': False}

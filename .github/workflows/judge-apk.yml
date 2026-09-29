@@ -11,7 +11,7 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       FOLEY_ORIGIN: ${{ inputs.origin }}
     steps:
@@ -37,7 +37,7 @@ jobs:
         working-directory: android
         run: |
           test ! -d app/src/debug
-          ./gradlew --no-daemon assembleDebug "-PfoleyUrl=$FOLEY_ORIGIN"
+          ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest "-PfoleyUrl=$FOLEY_ORIGIN"
       - name: Record source and origin
         run: |
           mkdir -p judge-build
@@ -53,7 +53,35 @@ jobs:
               'runtime_tested': False
           }, indent=2) + '\n')
           PY
+      - name: Prepare emulator audio output capture
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg pulseaudio pulseaudio-utils
+          pulseaudio --start --exit-idle-time=-1
+          pactl load-module module-null-sink sink_name=foley_tv rate=48000 channels=2
+          pactl set-default-sink foley_tv
+          pactl set-sink-mute foley_tv 0
+          pactl set-sink-volume foley_tv 100%
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test the exported APK against public HTTPS on Android TV
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        env:
+          QEMU_AUDIO_DRV: pa
+          PULSE_SINK: foley_tv
+        with:
+          api-level: 34
+          target: android-tv
+          arch: x86
+          profile: tv_1080p
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none
+          script: bash scripts/ci-judge-tv-run.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: foley-judge-apk
           path: judge-build/

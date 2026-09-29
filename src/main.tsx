@@ -1359,13 +1359,24 @@ function Microphone({
     [blob, setBlob] = useState<Blob | null>(null),
     [url, setUrl] = useState(""),
     [name, setName] = useState(""),
+    [recordingError, setRecordingError] = useState(""),
     [level, setLevel] = useState(0);
   const recorder = useRef<MediaRecorder | null>(null),
     stream = useRef<MediaStream | null>(null),
     meter = useRef<AudioContext | null>(null),
     frame = useRef(0),
-    timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    timer = useRef<ReturnType<typeof setTimeout> | null>(null),
+    generation = useRef(0),
+    mounted = useRef(true),
+    opening = useRef(false);
   const base = "/sessions/" + s.id;
+  const endRecording = () =>
+    fetch("/api" + base + "/recording", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active: false }),
+      keepalive: true,
+    }).catch(() => {});
   const release = () => {
     stream.current?.getTracks().forEach((t) => t.stop());
     stream.current = null;
@@ -1373,15 +1384,42 @@ function Microphone({
     meter.current = null;
     cancelAnimationFrame(frame.current);
     if (timer.current) clearTimeout(timer.current);
-    setRecording(false);
-    setLevel(0);
+    timer.current = null;
+    if (mounted.current) {
+      setRecording(false);
+      setLevel(0);
+    }
   };
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    const cancel = () => {
+      const active = opening.current || stream.current || recorder.current;
+      generation.current++;
+      opening.current = false;
+      const r = recorder.current;
+      recorder.current = null;
+      if (r) {
+        r.ondataavailable = r.onstop = r.onerror = null;
+        if (r.state !== "inactive") r.stop();
+      }
       release();
-    },
-    [],
-  );
+      if (active) void endRecording();
+    };
+    const hide = () => {
+      if (document.hidden && (opening.current || stream.current)) {
+        cancel();
+        setRecordingError("Recording stopped when you left the studio. Tap Record to try again.");
+      }
+    };
+    document.addEventListener("visibilitychange", hide);
+    window.addEventListener("pagehide", cancel);
+    return () => {
+      mounted.current = false;
+      cancel();
+      document.removeEventListener("visibilitychange", hide);
+      window.removeEventListener("pagehide", cancel);
+    };
+  }, []);
   useEffect(() => {
     if (!blob) {
       setUrl("");
@@ -1399,8 +1437,18 @@ function Microphone({
       throw new Error(
         "Microphone recording needs HTTPS (or localhost). Use an audio upload here, or open the secure studio link.",
       );
-    await api(base + "/recording", "POST", { active: true });
+    if (typeof MediaRecorder === "undefined")
+      throw new Error("This browser cannot record audio. Use an audio upload or another browser.");
+    const request = ++generation.current;
+    const current = () => mounted.current && request === generation.current;
+    setRecordingError("");
+    opening.current = true;
     try {
+      await api(base + "/recording", "POST", { active: true });
+      if (!current()) {
+        await endRecording();
+        return;
+      }
       const media = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -1408,8 +1456,20 @@ function Microphone({
           autoGainControl: false,
         },
       });
+      // Permission can resolve after navigation or after the phone locks. Never
+      // activate that late stream; stop its tracks before storing it anywhere.
+      if (!current()) {
+        media.getTracks().forEach((track) => track.stop());
+        await endRecording();
+        return;
+      }
       stream.current = media;
       await api(base + "/recording", "POST", { active: true });
+      if (!current()) {
+        release();
+        await endRecording();
+        return;
+      }
       const mime = [
         "audio/webm;codecs=opus",
         "audio/mp4",
@@ -1422,16 +1482,30 @@ function Microphone({
         if (e.data.size) chunks.push(e.data);
       };
       r.onstop = () => {
-        setBlob(new Blob(chunks, { type: r.mimeType }));
-        setName(
-          "Take " + (s.clips.filter((c) => c.member_id === s.me.id).length + 1),
-        );
+        if (!current()) return;
+        const take = new Blob(chunks, { type: r.mimeType });
+        if (take.size) {
+          setBlob(take);
+          setName(
+            "Take " + (s.clips.filter((c) => c.member_id === s.me.id).length + 1),
+          );
+        } else {
+          setRecordingError("No sound was captured. Record another take or upload an audio file.");
+        }
+        recorder.current = null;
         release();
-        api(base + "/recording", "POST", { active: false }).catch(() => {});
+        void endRecording();
       };
       r.onerror = () => {
+        if (!current()) return;
+        // MediaRecorder emits data/stop after an error too. Invalidate those
+        // callbacks so an incomplete recording cannot appear ready to send.
+        generation.current++;
+        recorder.current = null;
+        setBlob(null);
+        setRecordingError("Recording was interrupted. Your take was not sent. Tap Record to try again.");
         release();
-        api(base + "/recording", "POST", { active: false }).catch(() => {});
+        void endRecording();
       };
       setBlob(null);
       setSeconds(0);
@@ -1452,13 +1526,16 @@ function Microphone({
       tick();
       timer.current = setTimeout(stop, 7900);
     } catch (e) {
+      if (!current()) return;
       release();
-      await api(base + "/recording", "POST", { active: false });
+      await endRecording();
       throw new Error(
         (e as Error).name === "NotAllowedError"
           ? "Microphone permission was denied. Allow it in your browser, or upload a recording."
           : (e as Error).message,
       );
+    } finally {
+      if (request === generation.current) opening.current = false;
     }
   };
   const send = async () => {
@@ -1496,6 +1573,7 @@ function Microphone({
         </p>
       </div>
       <section className={`recorder ${recording ? "recording" : ""}`}>
+        {recordingError && <p className="alert" role="alert">{recordingError}</p>}
         <div className="record-status">
           <span className={recording ? "live-dot" : "quiet-dot"} />
           {recording

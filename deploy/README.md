@@ -21,6 +21,22 @@ Replace the example hostname with the actual DNS hostname. Never put bearer toke
 
 ## Judge APK and validation
 
+The manual **Container acceptance** workflow first checks the Docker image and
+the existing Compose/Caddy configuration on a disposable GitHub runner. It uses
+`localhost` and [Caddy's local CA](https://caddyserver.com/docs/automatic-https#local-https),
+not a public certificate. Its checks cover HTTPS, the built browser bundle,
+unpublished app ports, secure cookies, cross-origin rejection, forged forwarding
+headers, ffmpeg normalization and preservation of the SQLite studio and audio
+after replacing the app container. Only the summary JSON is uploaded; the
+temporary database, cookies and CA keys are removed with the isolated volumes.
+A passing run still requires separate public-host and physical-phone checks.
+
+Recorder error and retry regressions run locally with `npm run build` followed by
+`npm run test:recorder` (requires Playwright Chromium). They use a generated test
+microphone to exercise permission denial, a failed cleanup request, recorder
+interruption, upload retry and a permission grant that arrives after suspension.
+They do not establish physical-phone microphone capture or audible playback.
+
 After HTTPS is verified, run the **Judge APK** GitHub Actions workflow on the reviewed source revision and supply that same origin. The artifact contains `foley-tv.apk` plus the source commit, origin and SHA-256. It uses Android's debug signing key for sideloading, with system certificate trust and no CI certificate override. Each fresh runner generates a different debug key; uninstall any earlier Foley APK before installing a rebuilt one. This removes the TV's local pairing cookie, so start or pair a studio again afterward. Publish this artifact as a release asset for access without GitHub Actions authentication.
 
 Install on an Android TV emulator or Fire TV, then verify remote navigation, pairing, actual phone microphone capture, casting all three roles, audible premiere and credits. A successful APK build alone is not runtime proof. The existing emulator test uses synthetic audio and a temporary runner origin; it does not establish phone recording or this hosted build.

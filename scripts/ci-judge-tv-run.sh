@@ -130,6 +130,7 @@ cmp judge-build/foley-tv.apk "$evidence/installed-base.apk"
 sha256sum "$evidence/installed-base.apk" > "$evidence/installed-apk.sha256"
 # The APK remains in judge-build; no need to upload a duplicate binary.
 rm "$evidence/installed-base.apk"
+timeout 10 "$ANDROID_HOME/emulator/emulator" -help-audio > "$evidence/emulator-audio-help.txt" 2>&1 || true
 adb_cmd shell settings put system sound_effects_enabled 0
 adb_cmd shell cmd media_session volume --stream 3 --set 15
 adb_cmd logcat -c

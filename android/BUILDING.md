@@ -1,6 +1,16 @@
 # Building the Fire OS launcher
 
-This is a small Android WebView launcher for the TV surface. The web product and its backend must already be deployed at a trusted HTTPS origin. The paired phone supplies the microphone; the launcher requests only internet access.
+This is a small Android WebView launcher for the TV surface. The backend is deployed at [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io) on Amazon Lightsail, using reviewed application revision [`af1cf813`](https://github.com/himanshu748/foley/commit/af1cf81318a33b713656e0e655b978f359762b6e). The paired contributor browser supplies recordings or uploads; the launcher requests only internet access.
+
+[Public 1:59 demo](https://www.youtube.com/watch?v=F-AeLUo3wQ4): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
+
+## Verified judge build (30 September 2026)
+
+Download the [judging APK release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). The exact exported APK passed [run 36752896970](https://github.com/himanshu748/foley/actions/runs/36752896970) on Google Android TV API 34 against the public HTTPS origin, with its installed SHA-256 verified. D-pad navigation, Back/resume, pairing, synthetic upload/casting, the full movie and contributor credits passed. The emulator console's actual WebM audio contains the generated 260 Hz fixture tone.
+
+APK source: `dd586e075dc69e6174cb7fe481cd3a9caeb5f9dc`. APK SHA-256: `6a86e6e77231aa7c4a376e700c48a7dcbd8d3cf68d50bf6bcbaa6289da59de0e`. The release's `build.json` identifies the configured origin and runtime. This is a debug-signed sideload build; uninstall an earlier Foley test APK before installing a build signed by another CI key.
+
+Input came from an API test crew using one synthetic take in all three roles. Physical phone recording, Fire TV hardware and group playtesting remain separate quality checks. Google's Android TV emulator is accepted by the [event FAQ](https://amazonappdev2026.devpost.com/details/faqs).
 
 ## Verified local tool inventory — 8 September 2026
 
@@ -14,7 +24,7 @@ This is a small Android WebView launcher for the TV surface. The web product and
 
 ## Set up and build
 
-Rechecked 12 September 2026: the JDK and Android command-line tools are still present, but the checked SDK root contains no Android platform JAR, `aapt2`, `adb` or accepted-license directory. `~/Library/Android/sdk` remains absent. The installed `sdkmanager --list_installed` now emits an Android CLI deprecation notice and provides no installed-package inventory. No SDK package was added and no license was accepted. The updated wrapper is therefore still uncompiled.
+Rechecked 12 September 2026: the JDK and Android command-line tools are still present, but the checked SDK root contains no Android platform JAR, `aapt2`, `adb` or accepted-license directory. `~/Library/Android/sdk` remains absent. The installed `sdkmanager --list_installed` now emits an Android CLI deprecation notice and provides no installed-package inventory. No SDK package was added and no license was accepted. At that local check, the updated wrapper was still uncompiled. The later GitHub Actions build and emulator result are recorded below.
 
 The launcher now enters `/tv`, displays a focused native Retry screen for a main-frame connection failure, asks the web UI to resolve Back against its current state, and requests playback suspension before pausing WebView processing. Test these interactions on the selected native runtime; source inspection alone does not establish them.
 
@@ -38,7 +48,7 @@ From this `android/` directory, run:
 
 ```sh
 ./gradlew --version
-./gradlew assembleDebug -PfoleyUrl=https://your-deployed-foley.example
+./gradlew assembleDebug -PfoleyUrl=https://foley.13.204.212.172.sslip.io
 ```
 
 The first wrapper run downloads the pinned Gradle distribution if it is not already cached. Android Gradle dependencies may also need downloading. `foleyUrl` must be an HTTPS origin, without a path, credentials, query or fragment. Release signing is not configured. The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
@@ -65,8 +75,8 @@ The manifest includes launcher and leanback categories, no touchscreen requireme
 
 The `Android TV runtime` GitHub Actions workflow builds the web app and installs the debug APK on Google's Android TV API 34 x86 image. Its instrumentation test checks launch, D-pad Select, a six-character pairing code, horizontal navigation, Back and studio resume. Native screenshots, the device fingerprint, test reports and APKs are saved as one artifact. A successful run is emulator evidence only; it does not establish physical Fire TV performance or a real phone microphone recording.
 
-CI uses an in-memory studio server and a one-day certificate for `https://10.0.2.2:4443`. Its certificate trust configuration is generated only in the ignored debug source set. The release app retains normal HTTPS validation. The artifact APK points to the temporary runner and is a test artifact, not a hosted judge demo. Build a separate APK with the actual hosted origin before distributing it.
+The earlier `Android TV runtime` workflow uses an in-memory studio server and a one-day certificate for `https://10.0.2.2:4443`. Its certificate trust configuration is generated only in the ignored debug source set. The release app retains normal HTTPS validation. The artifact APK points to the temporary runner and is a test artifact, not a hosted judge demo. Build a separate APK with the actual hosted origin before distributing it.
 
 ### Verified CI result — 28 September 2026
 
-The local September inventory above is historical. [Run 36393598341](https://github.com/himanshu748/foley/actions/runs/36393598341) successfully compiled and installed the APK on the Android TV API 34 emulator. The test includes real API upload/normalization of generated audio, three cast roles, a complete 20-second premiere, credits, viewport visibility and one persisted premiere. Screenshots and a silent native screen recording were inspected. This does not establish physical Fire TV performance, real microphone capture or a persistent judge deployment.
+The local September inventory above is historical. [Run 36393598341](https://github.com/himanshu748/foley/actions/runs/36393598341) successfully compiled and installed the APK on the Android TV API 34 emulator. The test includes real API upload/normalization of generated audio, three cast roles, a complete 20-second premiere, credits, viewport visibility and one persisted premiere. Screenshots and a silent native screen recording were inspected. That native run does not establish physical Fire TV performance, real microphone capture or operation of the later public-origin judge APK. The later public-origin APK passed its own runtime and recorded-audio check on 30 September, as documented above.

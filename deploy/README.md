@@ -1,12 +1,39 @@
 # Single-server HTTPS deployment
 
-This is prepared configuration, not proof of a deployed service. Foley needs Node 22, ffmpeg and a persistent local SQLite file. The Compose configuration runs one app container behind Caddy, which obtains and renews HTTPS certificates. Only ports 80 and 443 are published. Caddy replaces client-supplied forwarding headers; `TRUST_PROXY=1` must not be used if users can reach the app directly.
+The public deployment is [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io), with the TV route at [/tv](https://foley.13.204.212.172.sslip.io/tv). Amazon Lightsail hosts the Node.js service, ffmpeg processing and persistent SQLite storage. Docker Compose runs one app container behind Caddy. Caddy serves publicly trusted HTTPS; only ports 80 and 443 are exposed for application traffic. SSH is restricted to the administrator's IPv4 address. The app port is not published. Caddy replaces client-supplied forwarding headers; `TRUST_PROXY=1` must not be used if users can reach the app directly.
+
+[Public 1:59 demo](https://www.youtube.com/watch?v=F-AeLUo3wQ4): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
+
+## Verified deployment (30 September 2026)
+
+The host runs the independently reviewed application revision [`af1cf81318a33b713656e0e655b978f359762b6e`](https://github.com/himanshu748/foley/commit/af1cf81318a33b713656e0e655b978f359762b6e). Later native-CI changes are separate from this deployed application revision.
+
+The live acceptance checks passed:
+
+- Public certificate trust, HTTP-to-HTTPS redirect, health, production HTML/bundle and security policy.
+- A healthy non-root application container with a named data volume and no published app port.
+- Scoped secure cookies, anonymous access rejection and cross-origin mutation rejection.
+- Pairing, ffmpeg normalization, private audio retrieval and casting all three roles.
+- Resistance to join-rate-limit bypass through forged forwarding headers.
+- Authorization, studio, cast and identical normalized audio preserved after replacing the app container.
+- Audio removal after ending the studio.
+
+Input was a synthetic one-second WAV. These checks establish the public backend behavior, not physical-phone recording, audible hardware output or the final judge APK. The earlier [container acceptance run](https://github.com/himanshu748/foley/actions/runs/36594968131) used a local Caddy CA on a GitHub runner; it is separate from the public-certificate check.
+
+Recorded deployment images:
+
+```text
+application: sha256:461f92bc1d6c239fd893d44858264d6573159f5f38ca91950b807d623c5fc1d3
+caddy: sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+```
+
+This AWS integration is Lightsail hosting. No AWS SDK, Bedrock, Polly or AI inference is used. The application's `/api/health` response contains a hardcoded legacy `aws: false` value; it does not inspect infrastructure or indicate whether the process runs on Lightsail.
 
 ## Host setup
 
 Use a Linux server with Docker Engine and the Compose plugin, at least 2 GB memory and a public IPv4 address. Point a DNS A record at that address. Permit inbound TCP 80/443, and restrict SSH to the administrator's IP. Leave IPv6 disabled and do not add an AAAA record: the current limiter does not aggregate IPv6 address prefixes. Compose publishes IPv4 TCP ports only. Do not expose TCP 4331. Do not place another CDN/proxy before Caddy without revisiting client-IP trust.
 
-An Amazon Lightsail `small_3_1` instance in Mumbai supplies 2 GB RAM, 60 GB disk and 1,536 GB monthly transfer for $12/month as checked on 28 September 2026. Taxes and transfer overages are additional. No free-tier credit is assumed. Keep an attached static IP and retain the service through judging, currently ending 20 November. Resource creation needs the account owner's cost approval; this repository creates no AWS resources automatically.
+The current deployment uses one Amazon Lightsail `small_3_1` Linux instance in Mumbai with an attached static IPv4. The bundle supplies 2 GB RAM, 60 GB disk and 1,536 GB monthly transfer at $12/month. Taxes and transfer overages are additional; no free-tier credit is assumed. The demo hostname uses sslip.io, and no domain, load balancer, snapshot or backup add-on was purchased for this deployment. Keep the instance and attached IP available through judging, currently ending 20 November. These are the deployed resource choices; this repository does not create AWS resources automatically.
 
 From a reviewed checkout on the host:
 
@@ -29,7 +56,7 @@ unpublished app ports, secure cookies, cross-origin rejection, forged forwarding
 headers, ffmpeg normalization and preservation of the SQLite studio and audio
 after replacing the app container. Only the summary JSON is uploaded; the
 temporary database, cookies and CA keys are removed with the isolated volumes.
-A passing run still requires separate public-host and physical-phone checks.
+That CI result is separate from the completed public-host checks above. Physical-phone behavior remains a separate quality check.
 
 Recorder error and retry regressions run locally with `npm run build` followed by
 `npm run test:recorder` (requires Playwright Chromium). They use a generated test
@@ -37,11 +64,11 @@ microphone to exercise permission denial, a failed cleanup request, recorder
 interruption, upload retry and a permission grant that arrives after suspension.
 They do not establish physical-phone microphone capture or audible playback.
 
-After HTTPS is verified, run the **Judge APK** GitHub Actions workflow on the reviewed source revision and supply that same origin. The artifact contains `foley-tv.apk` plus the source commit, origin and SHA-256. It uses Android's debug signing key for sideloading, with system certificate trust and no CI certificate override. Each fresh runner generates a different debug key; uninstall any earlier Foley APK before installing a rebuilt one. This removes the TV's local pairing cookie, so start or pair a studio again afterward. Publish this artifact as a release asset for access without GitHub Actions authentication.
+The public origin and exact installed APK passed [Judge APK run 36752896970](https://github.com/himanshu748/foley/actions/runs/36752896970). Its native WebM recording contains the generated 260 Hz fixture played by the app. The [judging release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30) provides the tested APK, sanitized build metadata and checksum without requiring GitHub Actions authentication. For a rebuild, run the **Judge APK** workflow on the intended source revision and supply `https://foley.13.204.212.172.sslip.io` as the origin. The artifact contains `foley-tv.apk` plus the source commit, origin and SHA-256. It uses Android's debug signing key for sideloading, with system certificate trust and no CI certificate override. Each fresh runner generates a different debug key; uninstall any earlier Foley APK before installing a rebuilt one. This removes the TV's local pairing cookie, so start or pair a studio again afterward. Keep future release assets bound to their own tested source revision and checksum.
 
-Install on an Android TV emulator or Fire TV, then verify remote navigation, pairing, actual phone microphone capture, casting all three roles, audible premiere and credits. A successful APK build alone is not runtime proof. The existing emulator test uses synthetic audio and a temporary runner origin; it does not establish phone recording or this hosted build.
+Install the resulting artifact on an Android TV emulator or Fire TV, then verify remote navigation, pairing, casting, premiere, credits and the actual captured output audio. A successful APK build alone is not runtime proof. Label API fixtures or uploaded test audio explicitly. Physical-phone microphone capture is an optional additional quality check, not a requirement of the accepted emulator route. The earlier emulator test used synthetic audio and a temporary runner origin; it does not establish this hosted build.
 
-For the final demo, record the TV and paired phone flow in under three minutes. Use a non-sensitive sound, delete the studio afterward, and retain the exact source/APK hashes alongside the video. Do not claim AWS deployment or physical Fire TV use before those actions actually succeed.
+The 118.5-second demo retains the full premiere and its actual emulator output audio, without narration or added music during playback. The API crew uploads one generated tone used for all three roles; a separate contributor-browser sequence is labeled as another edited run. The browser test studio was deleted; native test studios expire after six hours. Physical Fire TV and phone microphone behavior remain unverified. See the [friction log](../docs/FRICTION-LOG.md) for the observed focus, recorder and bootstrap issues.
 
 ## Operating the server
 

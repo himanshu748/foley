@@ -2,7 +2,11 @@
 
 Your living room is the sound crew for an original twenty-second movie. Start a studio, pair a phone, record or upload short sounds, cast them as footsteps/weather/creature, premiere the synchronized film, and recast a role for another cut.
 
-This is a working local product with a persistent backend. It starts empty. No generated demonstration recordings, prefilled cast, AWS credentials, account or cloud service are required.
+[Public 1:59 demo](https://www.youtube.com/watch?v=F-AeLUo3wQ4): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
+
+The [hosted TV interface](https://foley.13.204.212.172.sslip.io/tv) runs against a persistent backend on Amazon Lightsail. The app also runs locally without an AWS account or credentials. New studios start empty, with no generated demonstration recordings or prefilled cast.
+
+The reviewed deployed application is [`af1cf813`](https://github.com/himanshu748/foley/commit/af1cf81318a33b713656e0e655b978f359762b6e), with 23 passing tests and independent Claude review. Public HTTPS, pairing, private audio processing, casting, persistence after replacing the app container, and deletion have passed deployment checks. See [deployment evidence and setup](deploy/README.md) and the [integration friction log](docs/FRICTION-LOG.md). The exact [judging APK](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30) passed its [public-origin Android TV run](https://github.com/himanshu748/foley/actions/runs/36752896970), including captured output audio from a labeled synthetic fixture. See [Android build and runtime evidence](android/BUILDING.md).
 
 ## Run
 
@@ -24,7 +28,7 @@ The production server uses only runtime dependencies and `dist/`. It stores stud
 
 ## Real phone use and deployment
 
-Browsers require HTTPS for microphone access, except localhost on the same device. A QR code for `localhost` cannot connect a separate phone to your computer. For real phone recording, deploy the app behind HTTPS or use a trusted HTTPS development origin; every screen must use that same origin. File upload is available when the microphone is unavailable.
+Browsers require HTTPS for microphone access, except localhost on the same device. A QR code for `localhost` cannot connect a separate phone to your computer. For real phone recording, use the [hosted HTTPS origin](https://foley.13.204.212.172.sslip.io) or a trusted HTTPS deployment; every screen must use that same origin. File upload is available when the microphone is unavailable.
 
 Set the canonical origin and persistent storage explicitly:
 
@@ -41,7 +45,7 @@ docker build -t foley-studio .
 docker run --rm -p 127.0.0.1:4331:4331 -v foley-data:/app/data -e PUBLIC_URL=https://foley.example.com foley-studio
 ```
 
-Put the HTTPS proxy in front. Run one app instance per SQLite file, on local persistent storage. Horizontal replication, shared network volumes, managed backups and storage encryption are deployment decisions, not implemented claims. The database contains participant audio; configure retention for backups separately from the application's deletion policy. The container definition is supplied but has not been built in this workspace because Docker CLI/Desktop is absent.
+Put the HTTPS proxy in front. Run one app instance per SQLite file, on local persistent storage. Horizontal replication, shared network volumes, managed backups and storage encryption are deployment decisions, not implemented claims. The database contains participant audio; configure retention for backups separately from the application's deletion policy. The container passed [acceptance on an ephemeral GitHub runner](https://github.com/himanshu748/foley/actions/runs/36594968131) and the separate live Lightsail checks documented in [deploy/README.md](deploy/README.md). Those runs used synthetic audio and do not establish a physical phone microphone or heard TV output.
 
 ## Product behavior
 
@@ -93,18 +97,19 @@ Requirements: Android SDK 35, JDK 17 and Gradle 8.11.1 compatible with Android G
 
 ```sh
 cd android
-./gradlew assembleDebug -PfoleyUrl=https://your-deployed-foley.example
+./gradlew assembleDebug -PfoleyUrl=https://foley.13.204.212.172.sslip.io
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-`foleyUrl` must be an actual HTTPS deployment. The accepted Android TV emulator completed the remote-to-premiere workflow with synthetic audio; physical-device audio quality and phone microphone capture remain unverified. The required original banner/icon are included; release signing and device validation remain. **A CI-only APK and Android TV emulator run are verified; no physical Fire TV run or Amazon submission is claimed.** A desktop browser preview is not the Fire TV track deliverable. Vega is a separate native target and is not implemented by this wrapper.
+`foleyUrl` must be an actual HTTPS deployment. The earlier Android TV emulator run completed the remote-to-premiere workflow with synthetic audio against a temporary CI origin. The [public-origin judge APK run](https://github.com/himanshu748/foley/actions/runs/36752896970) passed with its installed checksum verified and its generated 260 Hz tone present in the native WebM recording. Download the exact tested APK from the [judging release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). Physical-device audio quality and phone microphone capture remain unverified. The required original banner/icon are included; release signing and physical-device validation remain. A desktop browser preview is separate from the native emulator evidence. Vega is a separate native target and is not implemented by this wrapper.
 
 ## Remaining external validation
 
-- Deploy at one trusted HTTPS origin and test an actual mobile microphone/codec combination against the TV's playback.
-- Validate actual audio output and Activity suspend/resume on the release target; the CI run covers D-pad, in-app Back/resume and synthetic-audio playback.
+- Validate Activity suspend/resume on physical targets. The current native run covers D-pad, in-app Back/resume and captured synthetic-audio playback on Google Android TV API 34.
+- Test physical mobile microphone/codec and TV combinations as additional quality checks. The accepted Android TV emulator path does not require physical hardware.
 - Playtest with a real small group. Time-to-first-premiere and willingness to remix remain unmeasured.
-- AWS integration is intentionally deferred. No AWS runtime or credit availability is required for this implementation.
+
+Lightsail hosts the backend; Foley does not use an AWS SDK, Bedrock, Polly or AI inference. The deployed revision's `/api/health` response includes a hardcoded legacy `aws: false` field. That field does not detect the hosting provider; the actual hosting integration is documented in [deploy/README.md](deploy/README.md).
 
 ## Primary references
 

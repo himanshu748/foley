@@ -1,6 +1,8 @@
 # Foley: TV delivery and demo evidence
 
-Updated 28 September 2026. This is a working delivery record, not a submitted entry or a claim of Fire TV compatibility.
+Updated 30 September 2026. The public backend runs on Amazon Lightsail at [the hosted TV origin](https://foley.13.204.212.172.sslip.io/tv). The current public-origin APK run is [36752896970](https://github.com/himanshu748/foley/actions/runs/36752896970); its native navigation, premiere, credits and recorded output-audio checks passed. The exact installed APK is available in the [judging release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). This document distinguishes the current delivery from historical tests and future playtests. Google Android TV API 34 emulator evidence does not establish physical Fire TV performance.
+
+[Public 1:59 demo](https://www.youtube.com/watch?v=F-AeLUo3wQ4): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
 
 ## What the TV controls now do
 
@@ -37,7 +39,7 @@ The documented Vega setup requires 20 GB available, native development utilities
 
 Once a Vega app exists and the SDK is installed, the official flow uses `vega virtual-device start` and `vega run-app <package> <app-id> -d VirtualDevice`. Virtual-device account registration is optional unless testing Amazon services. Foley does not currently call those services. These are documented future steps, not commands verified for a Foley package. [Run an app on Vega Virtual Device](https://developer.amazon.com/docs/vega/0.24/run-apps)
 
-## Proposed 2 minute 45 second demonstration
+## Future group walkthrough (proposed 2 minutes 45 seconds)
 
 Capture the app on an actual Fire TV device or the FAQ-accepted Android TV emulator. Keep the TV/runtime identification visible at the beginning. Show the phone separately when it records.
 
@@ -51,23 +53,23 @@ Capture the app on an actual Fire TV device or the FAQ-accepted Android TV emula
 | 2:00–2:20 | Demonstrate remote Back, Resume and explicit picture quality | Practical TV behavior beyond a staged happy path |
 | 2:20–2:45 | State the implemented architecture, original assets, measured limits and next playtest | An accurate scope and feedback summary |
 
-Do not call pre-recorded takes live capture. Do not call the current desktop browser a Fire TV simulator. The final video, public repository URL and licensed public source still require their own verified delivery receipts.
+The current submission video follows the native API-fixture test, with a separately labeled browser sequence. The group walkthrough above remains a future plan. Do not call pre-recorded takes live capture. Do not call the current desktop browser a Fire TV simulator. The public MIT repository and exact tested judging APK are available. The video follows the narrower observed test rather than the proposed group walkthrough.
 
 ## Observed friction and product feedback
 
-These are observations from development, not invented customer testimonials or device bugs. They have not been submitted for a hackathon bonus.
+These are observations from development, not invented customer testimonials or device bugs. The detailed [friction log](docs/FRICTION-LOG.md) is included with the submission materials.
 
 | Observation | Change or consequence | Evidence boundary |
 | --- | --- | --- |
 | Resume initially sat beside Start, so pressing Down missed it | Resume now occupies its own row; the keyboard regression checks Start → Down → Resume | Reproduced in desktop Chromium at TV size |
 | Jumping to the transport could leave the actual film above the screen | Premiere brings the picture into view and focuses its playback action | Browser layout and navigation correction |
 | Earlier SwiftShader run measured 118 ms median frame intervals despite batching to 56 draws | TV starts in 2D; 3D is optional and can be released immediately | Software-renderer measurement from 8 September, not TV performance |
-| Android tooling exists but platform/build-tool packages do not | Native compilation remains an explicit gate; wrapper setup lists exact missing pieces | Local development-environment inventory |
-| Amazon's remote guidance distinguishes Back, system Home and media controls | Implemented state-aware Back and suspend hooks without intercepting Home/Search/Volume | Documentation-informed implementation; native behavior unverified |
+| Android tooling exists but platform/build-tool packages do not | CI supplies the missing local packages and builds the tested judging APK | Local development-environment inventory |
+| Amazon's remote guidance distinguishes Back, system Home and media controls | Implemented state-aware Back and suspend hooks without intercepting Home/Search/Volume | D-pad and in-app Back/resume verified on Android TV; physical Fire OS and Activity suspension remain unverified |
 
 Specific feedback for the platform documentation: the remote behavior matrix made it possible to distinguish cancellation from leaving the app, and the Vega runtime comparison clearly identifies which WebView/simulator combinations are supported. A complete sample combining same-origin WebView navigation, remote Back, Web Audio suspension and a phone-paired experience would reduce integration uncertainty. That is a documentation-based request, not a report of an observed Fire OS defect. [Fire TV controller behavior](https://developer.amazon.com/docs/fire-tv/controller-behavior-guidelines.html)
 
-Human playtesting, time-to-first-premiere, recognizable mix quality and willingness to remix remain unmeasured. AWS remains deferred.
+Human playtesting, time-to-first-premiere, recognizable mix quality and willingness to remix remain unmeasured. [AWS Lightsail hosting and public HTTPS have passed deployment checks](deploy/README.md).
 
 ## Verified Android TV run — 28 September
 
@@ -75,4 +77,4 @@ Human playtesting, time-to-first-premiere, recognizable mix quality and willingn
 
 A prior run exposed a focus bug: disabling the Premiere button moved focus to navigation and scrolled the picture offscreen. Playback now transfers focus to the picture before preparation and to Stop after preparation. The successful native screenshots were inspected. The saved H.264 recording is 1920×1080 and 71.814 seconds, without an audio track. Input audio is a generated test fixture, not a phone recording.
 
-The public MIT source is https://github.com/himanshu748/foley. The CI APK targets an ephemeral runner-only HTTPS server and is not a judge-ready deployment. Remaining release work: stable HTTPS hosting, a release-target APK, physical phone recording/audio verification, a public demo under three minutes and Devpost submission.
+The public MIT source is https://github.com/himanshu748/foley. That earlier CI APK targets an ephemeral runner-only HTTPS server. The later public Lightsail deployment has passed HTTPS, pairing, private audio, casting, persistence and deletion checks. The later [public-origin run](https://github.com/himanshu748/foley/actions/runs/36752896970) passed its native output-audio gate and is the source of the [judging APK release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). Physical phone recording and group playtesting remain additional quality checks; the [event FAQ](https://amazonappdev2026.devpost.com/details/faqs) permits an Android TV emulator submission.

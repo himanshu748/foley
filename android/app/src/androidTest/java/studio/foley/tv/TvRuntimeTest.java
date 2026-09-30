@@ -66,6 +66,18 @@ public class TvRuntimeTest {
     private void key(int code) {
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(code);
     }
+    private void settleCreditsVisualState() throws Exception {
+        CountDownLatch ready=new CountDownLatch(1);
+        activity.getActivity().runOnUiThread(()->findWeb(activity.getActivity().getWindow().getDecorView())
+            .postVisualStateCallback(SystemClock.uptimeMillis(),new WebView.VisualStateCallback(){
+                @Override public void onComplete(long requestId){ready.countDown();}
+            }));
+        assertTrue("Credits visual state did not become drawable",ready.await(5,TimeUnit.SECONDS));
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+        // DOM readiness precedes the compositor's draw. Keep the Activity alive
+        // for the real credits frame to reach screenshots and emulator recording.
+        SystemClock.sleep(1500);
+    }
     private void capture(String name) throws Exception {
         Bitmap bitmap=InstrumentationRegistry.getInstrumentation().getUiAutomation().takeScreenshot();
         assertNotNull("No emulator screenshot",bitmap);
@@ -165,7 +177,9 @@ public class TvRuntimeTest {
             until("document.querySelector('.film-credits') && !document.querySelector('.screen.is-playing')");
             until("document.querySelector('.film-credits').innerText.includes('Synthetic test crew')");
             until("document.querySelector('.picture').getBoundingClientRect().top>=0 && document.querySelector('.picture').getBoundingClientRect().bottom<=innerHeight");
+            settleCreditsVisualState();
             capture("05-tv-credits");
+            SystemClock.sleep(1500);
             state=request(base,"GET",host,null,false);
             assertEquals("Server premiere receipt",1,state.getInt("premieres"));
         }catch(Throwable error){capture("failure");throw error;}

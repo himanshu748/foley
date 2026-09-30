@@ -55,8 +55,8 @@ jobs:
           PY
       - name: Prepare emulator audio output capture
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg pulseaudio pulseaudio-utils xvfb x11-utils libxcb-cursor0 libxkbcommon-x11-0
+          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=1 update -qq
+          sudo apt-get -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Acquire::Retries=1 install --no-install-recommends -y ffmpeg pulseaudio pulseaudio-utils xvfb x11-utils libxcb-cursor0 libxkbcommon-x11-0
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=foley_tv rate=48000 channels=2
           pactl set-default-sink foley_tv

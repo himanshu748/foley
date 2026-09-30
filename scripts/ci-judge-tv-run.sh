@@ -144,7 +144,14 @@ maximum=int(match[3]);assert 1 <= maximum <= 200
 print(maximum)
 PY_VOLUME
 )
-adb_cmd shell cmd media_session volume --stream 3 --set "$media_max" >> "$evidence/media-volume.txt"
+# On this API 34 image the media_session setter reports success but AppOps
+# rejects its com.android.server.media package under shell UID. Use real volume
+# keys through the system input path, then verify the observable music level.
+for attempt in $(seq 1 "$media_max"); do
+  adb_cmd shell input keyevent KEYCODE_VOLUME_UP
+  sleep 0.1
+done
+sleep 2
 adb_cmd shell cmd media_session volume --stream 3 --get >> "$evidence/media-volume.txt"
 python3 - "$evidence/media-volume.txt" <<'PY_VOLUME'
 import pathlib,re,sys

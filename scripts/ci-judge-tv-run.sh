@@ -132,7 +132,25 @@ sha256sum "$evidence/installed-base.apk" > "$evidence/installed-apk.sha256"
 rm "$evidence/installed-base.apk"
 timeout 10 "$ANDROID_HOME/emulator/emulator" -help-audio > "$evidence/emulator-audio-help.txt" 2>&1 || true
 adb_cmd shell settings put system sound_effects_enabled 0
-adb_cmd shell cmd media_session volume --stream 3 --set 15
+# TV images need not use the phone's 0..15 music-volume range.
+# Query the actual platform range; never compensate by replacing captured audio.
+adb_cmd shell cmd media_session volume --stream 3 --get > "$evidence/media-volume.txt"
+media_max=$(python3 - "$evidence/media-volume.txt" <<'PY_VOLUME'
+import pathlib,re,sys
+text=pathlib.Path(sys.argv[1]).read_text()
+match=re.search(r'volume is (\d+) in range \[(\d+)\.\.(\d+)\]',text)
+assert match, 'Android did not report its media-volume range'
+maximum=int(match[3]);assert 1 <= maximum <= 200
+print(maximum)
+PY_VOLUME
+)
+adb_cmd shell cmd media_session volume --stream 3 --set "$media_max" >> "$evidence/media-volume.txt"
+adb_cmd shell cmd media_session volume --stream 3 --get >> "$evidence/media-volume.txt"
+python3 - "$evidence/media-volume.txt" <<'PY_VOLUME'
+import pathlib,re,sys
+matches=re.findall(r'volume is (\d+) in range \[(\d+)\.\.(\d+)\]',pathlib.Path(sys.argv[1]).read_text())
+assert len(matches)>=2 and matches[-1][0]==matches[-1][2], 'Media volume did not reach maximum'
+PY_VOLUME
 adb_cmd logcat -c
 timeout 10 pactl list sources > "$evidence/pulse-sources.txt"
 cat > "$evidence/README.txt" <<'TEXT'

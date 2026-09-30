@@ -166,6 +166,11 @@ for emulator_pid in $(pgrep -u "$(id -u)" -f '/emulator/(emulator|qemu/)' || tru
       ;;
   esac
 done
+# Audio capture needs the normal engine; the headless executable stubs PA.
+if grep -q 'exe=.*-headless' "$evidence/emulator-process.txt"; then
+  echo 'Headless emulator engine cannot establish PulseAudio output' >&2
+  exit 1
+fi
 adb_cmd emu help screenrecord > "$evidence/console-help.txt"
 adb_cmd emu help screenrecord start >> "$evidence/console-help.txt"
 mark_capture_time emulator_console_launch_unix

@@ -56,7 +56,7 @@ jobs:
       - name: Prepare emulator audio output capture
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg pulseaudio pulseaudio-utils alsa-utils libasound2-plugins
+          sudo apt-get install -y ffmpeg pulseaudio pulseaudio-utils xvfb x11-utils libxcb-cursor0 libxkbcommon-x11-0
           pulseaudio --start --exit-idle-time=-1
           pactl load-module module-null-sink sink_name=foley_tv rate=48000 channels=2
           pactl set-default-sink foley_tv
@@ -68,25 +68,17 @@ jobs:
           foley_pulse_server=tcp:127.0.0.1:4713
           pactl --server="$foley_pulse_server" info
           echo "PULSE_SERVER=$foley_pulse_server" >> "$GITHUB_ENV"
-          # The SDK's bundled PulseAudio backend failed to initialize even when
-          # pactl connected. Route its ALSA backend through the system plugin.
-          cat > "$HOME/.asoundrc" <<'ALSA'
-          pcm.!default {
-            type pulse
-            server "tcp:127.0.0.1:4713"
-            device "foley_tv"
-          }
-          ctl.!default {
-            type pulse
-            server "tcp:127.0.0.1:4713"
-          }
-          ALSA
-          # Check the host route before recording. This 440 Hz preflight is
-          # deliberately distinct from the 260 Hz app fixture and stops here.
-          ffmpeg -nostdin -hide_banner -loglevel error -y -f lavfi -i sine=frequency=440:duration=1 -ar 48000 -ac 2 /tmp/foley-alsa-preflight.wav
-          PULSE_SERVER="$foley_pulse_server" aplay -D default /tmp/foley-alsa-preflight.wav
-          mkdir -p judge-build/runtime
-          aplay -L > judge-build/runtime/alsa-devices.txt
+          echo "QEMU_PA_SERVER=$foley_pulse_server" >> "$GITHUB_ENV"
+          echo "QEMU_PA_SINK=foley_tv" >> "$GITHUB_ENV"
+          # -no-window selects a separate binary with stubbed PulseAudio calls.
+          # Use the normal engine on a virtual X display for real output capture.
+          nohup Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp > /tmp/foley-xvfb.log 2>&1 &
+          for attempt in $(seq 1 20); do
+            if DISPLAY=:99 xdpyinfo >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          DISPLAY=:99 xdpyinfo >/dev/null
+          echo "DISPLAY=:99" >> "$GITHUB_ENV"
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -95,7 +87,7 @@ jobs:
       - name: Test the exported APK against public HTTPS on Android TV
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         env:
-          QEMU_AUDIO_DRV: alsa
+          QEMU_AUDIO_DRV: pa
           PULSE_SINK: foley_tv
         with:
           api-level: 34
@@ -103,7 +95,7 @@ jobs:
           arch: x86
           profile: tv_1080p
           disable-animations: true
-          emulator-options: -audio alsa -no-window -gpu swiftshader_indirect -no-boot-anim -camera-back none
+          emulator-options: -audio pa -gpu swiftshader_indirect -no-boot-anim -camera-back none
           script: bash scripts/ci-judge-tv-run.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

@@ -10,6 +10,6 @@ Foley gives a living-room group a shared creative task: make the soundtrack for 
 
 The current public video and APK run use a labeled synthetic tone from an API fixture crew. They establish native emulator playback with captured output audio, not physical phone capture, Fire TV hardware performance or a group playtest. The [event FAQ](https://amazonappdev2026.devpost.com/details/faqs) accepts Google's Android TV emulator.
 
-The **Judge APK** workflow additionally exercises distinct original synthetic sound-design fixtures and a second full cut. Its latest run must pass before those fixtures become new demonstration evidence. The first tone premiere remains the independent captured-audio check.
+The **Judge APK** workflow additionally exercises distinct original synthetic sound-design fixtures and a second full cut. The [3 October public-origin run](https://github.com/himanshu748/foley/actions/runs/37131675427) passed both premieres, the new cast selections and credits. The first tone premiere remains the independent captured-audio check. This is additional native test evidence; the public submission video remains the earlier tone demonstration.
 
 Lightsail supplies the persistent HTTPS backend. Foley uses no generative AI or AWS model API. See [deployment evidence](../deploy/README.md), [runtime evidence](../android/BUILDING.md) and [observed integration friction](FRICTION-LOG.md).

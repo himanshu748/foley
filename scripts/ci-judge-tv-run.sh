@@ -164,6 +164,8 @@ cat > "$evidence/README.txt" <<'TEXT'
 This run installs the exact foley-tv.apk from this artifact and verifies its installed hash.
 Runtime: Google Android TV API 34 emulator, public HTTPS with normal TLS validation.
 TvRuntimeTest uses real D-pad events and an API fixture crew with a generated 260 Hz WAV.
+It then recasts the picture with distinct deterministic footsteps, weather and creature
+fixtures and plays a second full cut. All four inputs are original synthetic audio.
 The fixture is not a phone microphone recording. This is not physical Fire TV evidence.
 emulator-av.webm is the Android Emulator console's native video/audio recording.
 native-emulator-audio.wav is decoded from that WebM's actual audio stream, not a replacement.
@@ -247,7 +249,7 @@ path = pathlib.Path('judge-build/build.json')
 build = json.loads(path.read_text())
 build.update(runtime_tested=True, runtime_passed=bool(passed), installed_apk_hash_verified=True,
              runtime='Google Android TV API 34 emulator', physical_device_tested=False,
-             audio_input='Synthetic 260 Hz WAV supplied by TvRuntimeTest API fixture')
+             audio_input='Synthetic 260 Hz WAV, then distinct deterministic sound-design fixtures supplied by TvRuntimeTest API crew')
 path.write_text(json.dumps(build, indent=2) + '\n')
 if not passed:
     raise SystemExit('Judge APK instrumentation failed; see runtime/instrumentation.txt and junit.xml')

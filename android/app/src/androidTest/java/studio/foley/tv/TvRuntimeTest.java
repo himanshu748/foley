@@ -95,6 +95,9 @@ public class TvRuntimeTest {
         return new JSONArray("["+read(expression)+"]").getString(0);
     }
     private JSONObject request(String path,String method,String cookie,byte[] body,boolean audio) throws Exception {
+        return request(path,method,cookie,body,audio,"Generated TV test tone");
+    }
+    private JSONObject request(String path,String method,String cookie,byte[] body,boolean audio,String name) throws Exception {
         HttpURLConnection connection=(HttpURLConnection)new URL(BuildConfig.FOLEY_URL+"/api"+path).openConnection();
         connection.setConnectTimeout(10000);connection.setReadTimeout(10000);
         connection.setRequestMethod(method);
@@ -102,7 +105,7 @@ public class TvRuntimeTest {
         if(cookie!=null)connection.setRequestProperty("Cookie",cookie);
         if(body!=null){
             connection.setRequestProperty("Content-Type",audio?"audio/wav":"application/json");
-            if(audio)connection.setRequestProperty("x-take-name","Generated%20TV%20test%20tone");
+            if(audio)connection.setRequestProperty("x-take-name",java.net.URLEncoder.encode(name,StandardCharsets.UTF_8).replace("+","%20"));
             connection.setDoOutput(true);
             try(OutputStream out=connection.getOutputStream()){out.write(body);}
         }
@@ -182,6 +185,32 @@ public class TvRuntimeTest {
             SystemClock.sleep(1500);
             state=request(base,"GET",host,null,false);
             assertEquals("Server premiere receipt",1,state.getInt("premieres"));
+
+            // Recast the same picture with three distinct original synthetic sounds.
+            // Keep the first tone premiere as the independent captured-audio check.
+            JSONObject replacementIds=new JSONObject();
+            for(String role:new String[]{"footsteps","weather","creature"}){
+                JSONObject sound=request(base+"/clips","POST",crew.getString("testCookie"),SyntheticSound.wav(role),true,"Synthetic "+role+" fixture");
+                replacementIds.put(role,sound.getString("id"));
+                state=request(base,"GET",host,null,false);
+                request(base+"/cast","POST",host,json(new JSONObject().put("role",role).put("clipId",sound.getString("id")).put("revision",state.getInt("revision")).put("volume",0.8)),false);
+            }
+            until("document.querySelector('.take-name') && document.body.innerText.includes('Synthetic creature fixture')");
+            state=request(base,"GET",host,null,false);
+            JSONObject casts=state.getJSONObject("casts");
+            for(String role:new String[]{"footsteps","weather","creature"})
+                assertEquals("Recast selects the newly uploaded "+role+" fixture",replacementIds.getString(role),casts.getJSONObject(role).getString("clipId"));
+            capture("06-tv-distinct-synthetic-cast");
+            until("document.activeElement.textContent.includes('Play the next cut')");
+            key(KeyEvent.KEYCODE_DPAD_CENTER);
+            until("document.querySelector('.screen.is-playing')");
+            until("parseInt(document.querySelector('.screen-top > span:last-child').textContent,10)>=3");
+            capture("07-tv-second-cut-synthetic-audio");
+            until("document.querySelector('.film-credits') && !document.querySelector('.screen.is-playing')");
+            settleCreditsVisualState();
+            capture("08-tv-second-cut-credits");
+            state=request(base,"GET",host,null,false);
+            assertEquals("Recast premiere receipt",2,state.getInt("premieres"));
         }catch(Throwable error){capture("failure");throw error;}
     }
 }

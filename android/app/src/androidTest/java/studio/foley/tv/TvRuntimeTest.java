@@ -195,7 +195,10 @@ public class TvRuntimeTest {
                 state=request(base,"GET",host,null,false);
                 request(base+"/cast","POST",host,json(new JSONObject().put("role",role).put("clipId",sound.getString("id")).put("revision",state.getInt("revision")).put("volume",0.8)),false);
             }
-            until("document.querySelector('.take-name') && document.body.innerText.includes('Synthetic creature fixture')");
+            // An uploaded take can appear before the following cast mutation is
+            // polled into the TV. Wait for every role's rendered selection so
+            // remote Select prepares the final soundtrack revision.
+            until("['footsteps','weather','creature'].every((role,i)=>document.querySelectorAll('.role-tab span')[i]?.textContent==='Synthetic '+role+' fixture')");
             state=request(base,"GET",host,null,false);
             JSONObject casts=state.getJSONObject("casts");
             for(String role:new String[]{"footsteps","weather","creature"})

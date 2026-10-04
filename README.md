@@ -4,7 +4,7 @@
 
 Your living room is the sound crew for an original twenty-second movie. Start a studio, pair a phone, record or upload short sounds, cast them as footsteps/weather/creature, premiere the synchronized film, and recast a role for another cut.
 
-[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, labeled original synthetic sounds, captured emulator audio and English Deepgram narration/captions. The main premiere uses the additional 3 October run's distinct sounds; physical Fire TV, phone microphone and group playtesting remain unverified.
+[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, labeled original synthetic sounds, captured emulator audio and English Deepgram narration with timed English captions. The main premiere uses the additional 3 October run's distinct sounds; physical Fire TV, phone microphone and group playtesting remain unverified.
 
 The [hosted TV interface](https://foley.13.204.212.172.sslip.io/tv) runs against a persistent backend on Amazon Lightsail. The app also runs locally without an AWS account or credentials. New studios start empty, with no generated demonstration recordings or prefilled cast.
 

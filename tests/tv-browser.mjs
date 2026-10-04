@@ -199,6 +199,97 @@ try {
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   );
+  const crewContext = await browser.newContext();
+  const crewPage = await crewContext.newPage();
+  const crewCode = await page.locator(".pair-code").textContent();
+  await crewPage.goto(url + "/join?code=" + crewCode);
+  await crewPage.getByLabel("Your credit in the film").fill("Expiry crew");
+  await crewPage.getByRole("button", { name: "Join the crew", exact: true }).click();
+  await crewPage.waitForURL("**/mic/**");
+  const crewBefore = await crewPage.evaluate(async (id) =>
+    fetch("/api/sessions/" + id).then((r) => r.json()), sid);
+  assert.equal(crewBefore.role, "crew");
+  // Freeze the browser clock just before expiry, then cross the deadline without
+  // another successful poll. Expiry must hide both ways of sharing a dead code.
+  const beforeExpiry = await page.evaluate(async (id) =>
+    fetch("/api/sessions/" + id).then((r) => r.json()), sid);
+  await page.clock.install({ time: new Date(beforeExpiry.codeExpires - 60000) });
+  await page.clock.pauseAt(new Date(beforeExpiry.codeExpires - 500));
+  await page.reload();
+  await page.locator(".qr").waitFor();
+  await page.getByRole("button", { name: "Copy link", exact: true }).focus();
+  await page.clock.runFor(1100);
+  await page.getByRole("button", { name: "Refresh pairing code", exact: true }).waitFor();
+  assert.equal(await page.locator(".qr").count(), 0);
+  assert.equal(await page.locator(".pair-code").count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Copy link", exact: true }).getAttribute("aria-disabled"), "true");
+  await page.getByText("Your paired crew can keep creating.", { exact: false }).waitFor();
+  await page.locator("#crew-panel").screenshot({
+    path: folder + "/tv-pairing-expired.png", timeout: 15000,
+  });
+  assert.ok(await page.evaluate(() => document.activeElement?.textContent.includes("Copy link")), "expiry keeps the focused Copy link in the pairing panel");
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "expired pairing state fits 1280px TV width");
+  const panelBounds = await page.locator("#crew-panel").boundingBox();
+  const refreshBounds = await page.getByRole("button", { name: "Refresh pairing code", exact: true }).boundingBox();
+  assert.ok(refreshBounds.x + refreshBounds.width <= panelBounds.x + panelBounds.width + 1, "refresh button stays inside pairing panel");
+  await page.keyboard.press("Enter");
+  assert.ok(await page.evaluate(() => document.activeElement?.textContent.includes("Refresh pairing code")), "expired Copy link Select moves focus to recovery");
+  await page.route("**/api/sessions/*/code", (route) => route.fulfill({
+    status: 503, contentType: "application/json", body: JSON.stringify({ error: "Pairing refresh unavailable. Try again." }),
+  }));
+  await page.keyboard.press("Enter");
+  await page.getByRole("alert").getByText("Pairing refresh unavailable. Try again.").waitFor();
+  assert.equal(await page.locator(".qr").count(), 0);
+  assert.equal(await page.getByRole("button", { name: "Copy link", exact: true }).getAttribute("aria-disabled"), "true");
+  await page.unroute("**/api/sessions/*/code");
+  await page.clock.setSystemTime(new Date(beforeExpiry.codeExpires + 1000));
+  await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  assert.equal(await page.locator(".pair-code").count(), 0);
+  assert.equal(await page.locator(".qr").count(), 0);
+  await page.getByRole("button", { name: "Refresh pairing code", exact: true }).focus();
+  // Stay past the old deadline through response/render, so the old QR cannot
+  // satisfy the recovery check just because the test rewound the wall clock.
+  await page.clock.resume();
+  const refreshedResponse = page.waitForResponse((response) =>
+    response.url() === `${url}/api/sessions/${sid}/code` &&
+    response.request().method() === "POST" && response.ok());
+  await page.keyboard.press("Enter");
+  await refreshedResponse;
+  await page.waitForFunction((oldCode) => {
+    const element = document.querySelector(".pair-code");
+    const code = element?.textContent?.trim();
+    return Boolean(element && code && code !== oldCode);
+  }, beforeExpiry.code);
+  assert.ok(await page.evaluate((deadline) => Date.now() > deadline, beforeExpiry.codeExpires));
+  await page.locator(".qr").waitFor();
+  const refreshed = await page.evaluate(async (id) =>
+    fetch("/api/sessions/" + id).then((r) => r.json()), sid);
+  assert.notEqual(refreshed.code, beforeExpiry.code);
+  assert.deepEqual(refreshed.crew, beforeExpiry.crew);
+  assert.deepEqual(refreshed.clips, beforeExpiry.clips);
+  assert.equal(await page.getByRole("button", { name: "Copy link", exact: true }).getAttribute("aria-disabled"), "false");
+  const crewAfter = await crewPage.evaluate(async (id) =>
+    fetch("/api/sessions/" + id).then((r) => r.json()), sid);
+  assert.equal(crewAfter.role, "crew");
+  assert.equal(crewAfter.me.id, crewBefore.me.id);
+  const microphoneLease = await crewPage.evaluate(async (id) => {
+    const response = await fetch("/api/sessions/" + id + "/recording", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: true }),
+    });
+    return { status: response.status, data: await response.json() };
+  }, sid);
+  assert.equal(microphoneLease.status, 200);
+  assert.equal(microphoneLease.data.ok, true);
+  const recordingCrew = await crewPage.evaluate(async (id) =>
+    fetch("/api/sessions/" + id).then((r) => r.json()), sid);
+  assert.equal(recordingCrew.recording, crewBefore.me.id);
+  await crewPage.evaluate(async (id) => fetch("/api/sessions/" + id + "/recording", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ active: false }),
+  }), sid);
+  await crewContext.close();
+  // Resume ordinary timers before leaving the test studio.
+  await page.clock.resume();
+  checks.push("Expired QR/code disappear on the clock deadline; Select refresh restores pairing without losing crew or takes");
   await page.getByRole("button", { name: "End studio", exact: false }).click();
   await page
     .getByRole("button", { name: "Delete studio & takes", exact: true })
@@ -234,7 +325,7 @@ try {
     JSON.stringify(
       {
         ok: true,
-        date: "2026-09-12",
+        date: new Date().toISOString(),
         viewport: "1280x720 browser keyboard with WebGL disabled; not Fire OS device evidence",
         checks,
         pageErrors: errors,

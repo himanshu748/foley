@@ -581,13 +581,45 @@ function Studio({
     frame: number;
   } | null>(null);
   const base = "/sessions/" + s.id;
+  const [pairingNow, setPairingNow] = useState(Date.now);
+  const refreshCodeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = () => {
+      if (timer) clearTimeout(timer);
+      const now = Date.now();
+      setPairingNow(now);
+      const remaining = (s.codeExpires || 0) - now;
+      if (s.code && remaining > 0) {
+        // The label uses ceil(minutes): update at its next boundary and stop
+        // scheduling once expired. Visibility resume checks the actual clock.
+        timer = setTimeout(tick, remaining % 60000 || 60000);
+      }
+    };
+    tick();
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [s.code, s.codeExpires]);
+  const codeActive = !!s.code && (s.codeExpires || 0) > pairingNow;
   const joinUrl = `${location.origin}/join?code=${s.code}`;
   useEffect(() => {
+    let cancelled = false;
+    setQr("");
     QRCode.toDataURL(joinUrl, {
       width: 176,
       margin: 1,
       color: { dark: "#282b27", light: "#f3ecdf" },
-    }).then(setQr);
+    })
+      .then((value) => {
+        if (!cancelled) setQr(value);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [joinUrl]);
   const stop = useCallback(() => {
     playRequest.current++;
@@ -943,11 +975,13 @@ function Studio({
             <h2>Bring the crew in.</h2>
           </div>
           <p>
-            Scan with a phone camera.
+            {codeActive ? "Scan with a phone camera." : "Need another microphone?"}
             <br />
-            The phone is your microphone.
+            {codeActive
+              ? "The phone is your microphone."
+              : "Refresh the code to invite more crew."}
           </p>
-          {qr && (
+          {codeActive && qr && (
             <img
               className="qr"
               src={qr}
@@ -956,21 +990,26 @@ function Studio({
               alt="QR code to pair a phone with this studio"
             />
           )}
-          <div className="pair-code">{s.code}</div>
+          {codeActive && <div className="pair-code">{s.code}</div>}
           <p className="code-time">
-            {(s.codeExpires || 0) > Date.now()
+            {codeActive
               ? "Pairing code expires in " +
                 Math.max(
                   1,
-                  Math.ceil(((s.codeExpires || 0) - Date.now()) / 60000),
-                ) +
-                " min"
-              : "Pairing code expired"}
+                  Math.ceil(((s.codeExpires || 0) - pairingNow) / 60000),
+                ) + " min"
+              : "Pairing code expired · Your paired crew can keep creating."}
           </p>
-          <div className="pair-actions">
+          <div className="pair-actions" style={!codeActive ? { flexWrap: "wrap", paddingTop: 8 } : undefined}>
             <button
               className="text-link"
+              aria-disabled={!codeActive}
               onClick={() => {
+                if (!codeActive) {
+                  refreshCodeButton.current?.focus({ preventScroll: true });
+                  notice("Pairing code expired. Refresh it to invite more crew.");
+                  return;
+                }
                 navigator.clipboard
                   .writeText(joinUrl)
                   .then(() => notice("Phone link copied."))
@@ -980,7 +1019,8 @@ function Studio({
               <Copy size={15} /> Copy link
             </button>
             <button
-              className="text-link"
+              ref={refreshCodeButton}
+              className={codeActive ? "text-link" : "button primary"}
               disabled={!!busy}
               onClick={() =>
                 action("Refreshing code", async () =>
@@ -988,7 +1028,7 @@ function Studio({
                 )
               }
             >
-              <RefreshCw size={15} /> New code
+              <RefreshCw size={15} /> {codeActive ? "New code" : "Refresh pairing code"}
             </button>
           </div>
           <div className="crew-list">

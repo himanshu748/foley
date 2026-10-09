@@ -1968,3 +1968,133 @@ input::placeholder {
     font-size: 12px;
   }
 }
+
+/* Saved versions sit beside the existing cast, leaving the picture uninterrupted. */
+.saved-cuts {
+  margin: 34px 0;
+  scroll-margin-top: 24px;
+}
+.saved-cuts .section-head p {
+  color: #555b50;
+  margin-top: 8px;
+}
+.cut-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.cut-card {
+  padding: 24px;
+  border: 1px solid #bcb6a8;
+  border-radius: 14px;
+  background: #eee4d3;
+  min-width: 0;
+}
+.cut-card.invalid {
+  border-color: #b74028;
+}
+.cut-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cut-title h3 {
+  font:
+    700 28px "Bricolage Grotesque",
+    sans-serif;
+  margin: 0;
+}
+.cut-title span {
+  font-size: 13px;
+  color: #555b50;
+}
+.cut-card > p {
+  margin: 12px 0;
+}
+.cut-roles {
+  padding: 0;
+  margin: 18px 0;
+  list-style: none;
+}
+.cut-roles li {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ccc2b1;
+}
+.cut-roles span {
+  overflow-wrap: anywhere;
+}
+.cut-difference {
+  font-weight: 600;
+  color: #293d43;
+}
+.cut-invalid {
+  color: #8c2e1c;
+  font-weight: 600;
+}
+.cut-actions,
+.cut-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.cut-confirm p {
+  flex-basis: 100%;
+  margin-bottom: 4px;
+}
+.upload-take audio {
+  width: 100%;
+  max-width: 360px;
+}
+button,
+.text-link,
+.take-play,
+.delete-take,
+.picture-choice button {
+  min-height: 44px;
+}
+.take-play,
+.delete-take,
+.alert button {
+  min-width: 44px;
+}
+.studio-route {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+@media (max-width: 720px) {
+  .cut-grid {
+    grid-template-columns: 1fr;
+  }
+  .cut-card {
+    padding: 18px;
+  }
+  .cut-roles li {
+    grid-template-columns: 90px minmax(0, 1fr);
+    font-size: 14px;
+  }
+  .studio-route {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.small-button,
+.upload-take .button,
+.alert button,
+.fullscreen-button {
+  min-height: 44px;
+}
+.transport .button {
+  min-height: 44px;
+}
+
+.fullscreen-button,
+.round-button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.upload-take .text-link { min-width: 44px; }

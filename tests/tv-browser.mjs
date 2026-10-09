@@ -345,6 +345,7 @@ try {
       process.env.TEST_URL = url;
       process.env.TEST_WEBGL_DISABLED = "1";
       await import("./browser.mjs");
+      await import("./cuts-browser.mjs");
     }
   } finally {
     await new Promise((resolve) => server.close(resolve));

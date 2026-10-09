@@ -192,17 +192,64 @@ export async function createApp({
       res.json({ ok: true });
     }),
   );
+  app.get(
+    "/api/sessions/:id/cuts",
+    endpoint((req, res) => {
+      res.json({ cuts: store.listCuts(req.params.id, tokens(req)) });
+    }),
+  );
+  app.put(
+    "/api/sessions/:id/cuts/:slot",
+    endpoint((req, res) => {
+      const result = store.saveCut(
+        req.params.id,
+        tokens(req),
+        req.params.slot,
+        req.body,
+      );
+      res.status(result.created ? 201 : 200).json({ cut: result.cut });
+    }),
+  );
+  app.post(
+    "/api/sessions/:id/cuts/:slot/play",
+    endpoint((req, res) => {
+      res.json(
+        store.playCut(
+          req.params.id,
+          tokens(req),
+          req.params.slot,
+          req.body?.cutId,
+        ),
+      );
+    }),
+  );
+  app.delete(
+    "/api/sessions/:id/cuts/:slot",
+    endpoint((req, res) => {
+      store.deleteCut(
+        req.params.id,
+        tokens(req),
+        req.params.slot,
+        req.body?.cutId,
+      );
+      res.json({ ok: true });
+    }),
+  );
   app.post(
     "/api/sessions/:id/play",
     endpoint((req, res) => {
-      store.play(req.params.id, tokens(req), req.body?.revision);
-      res.json({ ok: true });
+      const playbackId = store.play(
+        req.params.id,
+        tokens(req),
+        req.body?.revision,
+      );
+      res.json({ ok: true, playbackId });
     }),
   );
   app.post(
     "/api/sessions/:id/stop",
     endpoint((req, res) => {
-      store.stop(req.params.id, tokens(req));
+      store.stop(req.params.id, tokens(req), req.body?.playbackId);
       res.json({ ok: true });
     }),
   );
@@ -239,6 +286,7 @@ export async function createApp({
     const status = error.status || 500;
     if (status >= 500) console.error(error.message);
     res.status(status).json({
+      ...(error.missingClipIds ? { missingClipIds: error.missingClipIds } : {}),
       error:
         status === 500
           ? "The studio could not finish that action. Try again."

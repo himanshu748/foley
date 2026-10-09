@@ -15,6 +15,6 @@ trap collect EXIT
 adb shell getprop ro.build.fingerprint > .ci/evidence/device.txt
 adb shell pm list features >> .ci/evidence/device.txt
 ./android/gradlew -p android --no-daemon assembleDebug assembleDebugAndroidTest -PfoleyUrl=https://10.0.2.2:4443
-adb shell screenrecord --bit-rate 6000000 --time-limit 120 /sdcard/foley-runtime.mp4 > .ci/evidence/screenrecord.log 2>&1 &
+adb shell screenrecord --bit-rate 6000000 --time-limit 180 /sdcard/foley-runtime.mp4 > .ci/evidence/screenrecord.log 2>&1 &
 recording_pid=$!
 ./android/gradlew -p android --no-daemon connectedDebugAndroidTest -PfoleyUrl=https://10.0.2.2:4443

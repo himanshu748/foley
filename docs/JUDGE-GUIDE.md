@@ -15,3 +15,8 @@ The **Judge APK** workflow exercises distinct original synthetic sound-design fi
 For installation, use the **30 September release linked in step 1**. Its APK SHA-256 is `6a86e6e77231aa7c4a376e700c48a7dcbd8d3cf68d50bf6bcbaa6289da59de0e`. The separate 3 October CI APK has SHA-256 `42346af2283f791796f6e3d54c50344037ad226684d502222332f62972dae0d6`; it is an additional test artifact, not a replacement release. The launcher source is identical between those builds, and both use the hosted HTTPS origin. Each build has its own verified installation receipt; the checksums are not interchangeable.
 
 Lightsail supplies the persistent HTTPS backend. Foley uses no generative AI or AWS model API. See [deployment evidence](../deploy/README.md), [runtime evidence](../android/BUILDING.md) and [observed integration friction](FRICTION-LOG.md).
+
+
+## Saved-cut comparison in v1.1
+
+After the source revision containing saved cuts is deployed, use **Compare cuts** to save the first complete soundtrack as A. Change only Creature, save B, then play A and B. The cards identify the changed role and its level; replay leaves the current cast unchanged. Replace prompts before overwriting a slot. Removed takes invalidate affected snapshots until they are saved again. Existing videos and APK-run receipts above do not establish this new flow; see [saved-cut verification](SAVED-CUTS.md).

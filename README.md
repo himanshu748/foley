@@ -8,7 +8,11 @@ Your living room is the sound crew for an original twenty-second movie. Start a 
 
 The [hosted TV interface](https://foley.13.204.212.172.sslip.io/tv) runs against a persistent backend on Amazon Lightsail. The app also runs locally without an AWS account or credentials. New studios start empty, with no generated demonstration recordings or prefilled cast.
 
-The reviewed deployed application is [`af1cf813`](https://github.com/himanshu748/foley/commit/af1cf81318a33b713656e0e655b978f359762b6e), with 23 passing tests and independent Claude review. Public HTTPS, pairing, private audio processing, casting, persistence after replacing the app container, and deletion have passed deployment checks. See [deployment evidence and setup](deploy/README.md) and the [integration friction log](docs/FRICTION-LOG.md). The exact [judging APK](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30) passed its [public-origin Android TV run](https://github.com/himanshu748/foley/actions/runs/36752896970), including captured output audio from a labeled synthetic fixture. See [Android build and runtime evidence](android/BUILDING.md).
+The last verified hosted source is [`3c59fb9`](https://github.com/himanshu748/foley/commit/3c59fb9e6d6aeefe1268cf6c8f6c71a99bdd087b), recorded in the 4 October acceptance receipt. Its source baseline passed 23 local tests again on 9 October. The earlier 30 September deployment and independent review belong to `af1cf813`; the separately dated deployment receipts cover public HTTPS, pairing, private audio processing, casting, container replacement persistence and deletion. See [deployment evidence and setup](deploy/README.md) and the [integration friction log](docs/FRICTION-LOG.md). The exact [judging APK](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30) passed its [public-origin Android TV run](https://github.com/himanshu748/foley/actions/runs/36752896970), including captured output audio from a labeled synthetic fixture. See [Android build and runtime evidence](android/BUILDING.md).
+
+## Saved A/B cuts
+
+The v1.1 source adds two private soundtrack snapshots. Save a complete cast as A, change one role and save B, then replay either without replacing the current edit. The cards show changed roles and volumes; replacing or deleting a saved cut requires confirmation. See [behavior, API and validation boundaries](docs/SAVED-CUTS.md). Existing public video and runtime receipts below predate this feature.
 
 ## Run
 
@@ -77,6 +81,8 @@ npm run build
 npm audit --omit=dev
 # With the server running in another terminal:
 npm run test:browser
+# Self-contained saved-cut server/browser integration:
+npm run test:cuts
 # Additional rendering/lifecycle verification with the same running server:
 TEST_URL=http://localhost:4331 npm run test:3d
 ```

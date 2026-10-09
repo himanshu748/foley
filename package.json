@@ -15,7 +15,8 @@
     "test:browser": "node tests/browser.mjs",
     "test:recorder": "node tests/recorder-browser.mjs",
     "test:3d": "node tests/3d-browser.mjs",
-    "test:tv": "node tests/tv-browser.mjs"
+    "test:tv": "node tests/tv-browser.mjs",
+    "test:cuts": "node tests/cuts-browser.mjs"
   },
   "dependencies": {
     "@fontsource/bricolage-grotesque": "^5.2.8",

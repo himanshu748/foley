@@ -165,7 +165,9 @@ This run installs the exact foley-tv.apk from this artifact and verifies its ins
 Runtime: Google Android TV API 34 emulator, public HTTPS with normal TLS validation.
 TvRuntimeTest uses real D-pad events and an API fixture crew with a generated 260 Hz WAV.
 It then recasts the picture with distinct deterministic footsteps, weather and creature
-fixtures and plays a second full cut. All four inputs are original synthetic audio.
+fixtures and plays a second full cut. It saves that distinct cast as A, changes only
+Creature for B, then replays A and B while preserving the current B edit. Screenshots 09–13
+cover the comparison and saved replay. All four inputs are original synthetic audio.
 The fixture is not a phone microphone recording. This is not physical Fire TV evidence.
 emulator-av.webm is the Android Emulator console's native video/audio recording.
 native-emulator-audio.wav is decoded from that WebM's actual audio stream, not a replacement.

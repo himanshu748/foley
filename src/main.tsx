@@ -68,6 +68,17 @@ type Session = {
   recording: string | null;
   playingUntil: number;
 };
+type Casts = Session["casts"];
+type CutSlot = "A" | "B";
+type SavedCut = {
+  id: string;
+  slot: CutSlot;
+  label: string;
+  casts: Casts;
+  sourceRevision: number;
+  valid: boolean;
+  missingClipIds: string[];
+};
 const roles: Role[] = ["footsteps", "weather", "creature"];
 const roleInfo = {
   footsteps: {
@@ -202,6 +213,7 @@ function App() {
     } catch (e) {
       setError((e as Error).message);
       setLoaded(true);
+      return e as Error;
     }
   }, [id]);
   useEffect(() => {
@@ -558,7 +570,7 @@ function Studio({
   busy: string;
   action: Function;
   notice: Function;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<Error | undefined>;
 }) {
   const [selected, setSelected] = useState<Role>("footsteps"),
     [qr, setQr] = useState(""),
@@ -566,12 +578,29 @@ function Studio({
     [playing, setPlaying] = useState(false),
     [preparing, setPreparing] = useState(false),
     [endConfirm, setEndConfirm] = useState(false);
+  const [cuts, setCuts] = useState<SavedCut[]>([]);
+  const [cutError, setCutError] = useState("");
+  const [cutConfirm, setCutConfirm] = useState<{
+    slot: CutSlot;
+    id: string;
+    expectedRevision: number;
+    kind: "save" | "delete";
+  } | null>(null);
+  const [replayed, setReplayed] = useState<{
+    label: string;
+    casts: Casts;
+    clips: Clip[];
+    slot?: CutSlot;
+  } | null>(null);
+  const playbackId = useRef<string | null>(null);
+
   const [pictureMode, choosePicture] = usePictureMode();
   const playRequest = useRef(0);
   const playAbort = useRef<AbortController | null>(null);
   useEffect(() => {
     if (isTV && playing && !preparing && !busy)
-      document.querySelector<HTMLButtonElement>("#premiere-panel button")
+      document
+        .querySelector<HTMLButtonElement>("#premiere-panel button")
         ?.focus({ preventScroll: true });
   }, [playing, preparing, busy]);
   useEffect(() => rememberStudio(s), [s.id, s.title, s.expires]);
@@ -581,6 +610,56 @@ function Studio({
     frame: number;
   } | null>(null);
   const base = "/sessions/" + s.id;
+  const refreshCuts = useCallback(async () => {
+    try {
+      const result = await api(base + "/cuts");
+      setCuts(result.cuts);
+      setCutError("");
+    } catch (e) {
+      setCutError((e as Error).message);
+    }
+  }, [base]);
+  useEffect(() => {
+    void refreshCuts();
+    const timer = setInterval(() => {
+      if (!document.hidden) void refreshCuts();
+    }, 2500);
+    return () => clearInterval(timer);
+  }, [refreshCuts, s.revision, s.clips.length]);
+  useEffect(() => {
+    if (cutConfirm)
+      document
+        .querySelector<HTMLButtonElement>('[data-cut-action="cancel"]')
+        ?.focus({ preventScroll: true });
+  }, [cutConfirm]);
+  const pendingCutFocus = useRef<CutSlot | null>(null);
+  const holdCutFocus = (slot: CutSlot) => {
+    pendingCutFocus.current = slot;
+    if (isTV)
+      document
+        .querySelector<HTMLElement>(`[data-cut-slot="${slot}"]`)
+        ?.focus({ preventScroll: true });
+  };
+  useEffect(() => {
+    if (busy || !pendingCutFocus.current) return;
+    const card = document.querySelector<HTMLElement>(
+      `[data-cut-slot="${pendingCutFocus.current}"]`,
+    );
+    const target =
+      card?.querySelector<HTMLElement>(
+        '[data-cut-action="save"]:not(:disabled), [data-cut-action="cancel"]:not(:disabled)',
+      ) || card;
+    if (isTV) target?.focus({ preventScroll: true });
+    pendingCutFocus.current = null;
+  }, [busy, cuts, cutConfirm]);
+  const cutAction = (slot: CutSlot, label: string, fn: () => Promise<void>) => {
+    holdCutFocus(slot);
+    action(label, fn);
+  };
+  const dismissCutConfirm = () => {
+    if (cutConfirm) holdCutFocus(cutConfirm.slot);
+    setCutConfirm(null);
+  };
   const [pairingNow, setPairingNow] = useState(Date.now);
   const refreshCodeButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -632,24 +711,38 @@ function Studio({
         } catch {}
       });
       cancelAnimationFrame(player.current.frame);
-      player.current.context.close();
+      void player.current.context.close().catch(() => {});
       player.current = null;
     }
     setPlaying(false);
-    api(base + "/stop", "POST")
-      .then(refresh)
-      .catch(() => {});
+    const claimed = playbackId.current;
+    playbackId.current = null;
+    if (claimed)
+      api(base + "/stop", "POST", { playbackId: claimed })
+        .then(refresh)
+        .catch(() => {});
   }, [base, refresh]);
   useEffect(
     () => () => {
       if (player.current) {
         cancelAnimationFrame(player.current.frame);
-        player.current.context.close();
+        void player.current.context.close().catch(() => {});
       }
+      playRequest.current++;
+      playAbort.current?.abort();
+      if (playbackId.current)
+        void fetch("/api" + base + "/stop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playbackId: playbackId.current }),
+          keepalive: true,
+        });
     },
     [],
   );
-  const play = async () => {
+  const play = async (cut?: SavedCut) => {
+    const preparedCasts = structuredClone(cut?.casts || s.casts);
+
     if (playing) {
       stop();
       return;
@@ -671,7 +764,7 @@ function Studio({
       await context.resume();
       const buffers = new Map<string, AudioBuffer>();
       for (const role of roles) {
-        const cid = s.casts[role]!.clipId;
+        const cid = preparedCasts[role]!.clipId;
         if (!buffers.has(cid)) {
           const r = await fetch("/api" + base + "/clips/" + cid + "/audio", {
             signal: abort.signal,
@@ -687,15 +780,39 @@ function Studio({
         }
       }
       if (request !== playRequest.current || document.hidden) {
-        await context.close();
+        await context.close().catch(() => {});
         return;
       }
-      await api(base + "/play", "POST", { revision: s.revision });
+      const receipt = cut
+        ? await api(base + `/cuts/${cut.slot}/play`, "POST", { cutId: cut.id })
+        : await api(base + "/play", "POST", { revision: s.revision });
       if (request !== playRequest.current || document.hidden) {
-        await context.close();
-        stop();
+        await context.close().catch(() => {});
+        if (receipt.playbackId)
+          await api(base + "/stop", "POST", { playbackId: receipt.playbackId });
         return;
       }
+      playbackId.current = receipt.playbackId;
+      const acknowledgedCasts: Casts = cut ? receipt.casts : preparedCasts;
+      if (
+        cut &&
+        (receipt.cutId !== cut.id ||
+          roles.some(
+            (role) =>
+              acknowledgedCasts?.[role]?.clipId !==
+                preparedCasts[role]?.clipId ||
+              acknowledgedCasts?.[role]?.volume !== preparedCasts[role]?.volume,
+          ))
+      )
+        throw new Error(
+          "This cut changed while it was preparing. Choose it again.",
+        );
+      setReplayed({
+        label: cut ? `Cut ${cut.slot} · ${cut.label}` : "Current soundtrack",
+        casts: acknowledgedCasts,
+        clips: [...s.clips],
+        slot: cut?.slot,
+      });
       const start = context.currentTime + 0.2,
         sources: AudioBufferSourceNode[] = [];
       const limiter = context.createDynamicsCompressor();
@@ -703,7 +820,7 @@ function Studio({
       limiter.ratio.value = 12;
       limiter.connect(context.destination);
       for (const role of roles) {
-        const cast = s.casts[role]!,
+        const cast = acknowledgedCasts[role]!,
           buffer = buffers.get(cast.clipId)!;
         for (const cue of CUES[role]) {
           const source = context.createBufferSource(),
@@ -738,14 +855,33 @@ function Studio({
         player.current.frame = requestAnimationFrame(tick);
       };
       tick();
-      await refresh();
+      const refreshError = await refresh();
+      if (refreshError) throw refreshError;
     } catch (e) {
-      context?.close();
+      if (context && context.state !== "closed")
+        await context.close().catch(() => {});
       if (request !== playRequest.current) return;
+      if (player.current && player.current.context === context) {
+        cancelAnimationFrame(player.current.frame);
+        player.current.sources.forEach((source) => {
+          try {
+            source.stop();
+          } catch {}
+        });
+        player.current = null;
+      }
+      setPlaying(false);
+      const claimed = playbackId.current;
+      playbackId.current = null;
+      if (claimed)
+        await api(base + "/stop", "POST", { playbackId: claimed }).catch(
+          () => {},
+        );
+      void refreshCuts();
       throw e;
     } finally {
       if (playAbort.current === abort) playAbort.current = null;
-      setPreparing(false);
+      if (request === playRequest.current) setPreparing(false);
     }
   };
   const allCast = roles.every((r) => s.casts[r]);
@@ -753,6 +889,10 @@ function Studio({
     back: () => {
       if (playing || preparing) {
         stop();
+        return true;
+      }
+      if (cutConfirm) {
+        dismissCutConfirm();
         return true;
       }
       if (endConfirm) {
@@ -773,17 +913,29 @@ function Studio({
       if (playing || preparing) stop();
     },
     media: () => {
-      if (!busy && !preparing && (playing || (allCast && !s.recording)))
-        action("Preparing premiere", play);
+      if (playing || preparing) stop();
+      else if (!busy && !s.recording && !cutConfirm) {
+        const focusedSlot = (
+          document.activeElement as HTMLElement
+        )?.closest<HTMLElement>("[data-cut-slot]")?.dataset.cutSlot;
+        const focusedCut = cuts.find((cut) => cut.slot === focusedSlot);
+        if (focusedCut?.valid)
+          action(`Preparing Cut ${focusedCut.slot}`, () => play(focusedCut));
+        else if (!focusedSlot && allCast)
+          action("Preparing premiere", () => play());
+      }
     },
   });
   const jump = (target: string) => {
     const region = document.getElementById(target);
-    const surface = target === "premiere-panel" ? region?.closest(".screen") : region;
+    const surface =
+      target === "premiere-panel" ? region?.closest(".screen") : region;
     surface?.scrollIntoView({ block: "start", behavior: "instant" });
-    region
-      ?.querySelector<HTMLElement>('button:not(:disabled),[tabindex="0"]')
-      ?.focus({ preventScroll: true });
+    const focus =
+      region?.querySelector<HTMLElement>(
+        'button:not(:disabled),[tabindex="0"]',
+      ) || region;
+    focus?.focus({ preventScroll: true });
   };
   const selectedInfo = roleInfo[selected];
   const locked = !!busy || playing || preparing || s.playingUntil > Date.now();
@@ -837,6 +989,11 @@ function Studio({
             {allCast ? "Ready for action" : "Cast three roles first"}
           </small>
         </button>
+        <button onClick={() => jump("cuts-panel")}>
+          <Clapperboard size={20} />
+          <span>Compare cuts</span>
+          <small>{cuts.length} of 2 saved</small>
+        </button>
       </nav>
       {endConfirm && (
         <div className="end-confirm">
@@ -862,7 +1019,11 @@ function Studio({
         </div>
       )}
       <div className="studio-grid">
-        <section className={`screen ${playing ? "is-playing" : ""}`} tabIndex={isTV ? -1 : undefined}>
+        <section
+          data-playback-cut={replayed?.slot || "active"}
+          className={`screen ${playing ? "is-playing" : ""}`}
+          tabIndex={isTV ? -1 : undefined}
+        >
           <div className="screen-top">
             <span>
               <span className={playing ? "live-dot" : "quiet-dot"} />
@@ -877,13 +1038,17 @@ function Studio({
             {time >= 20 && (
               <div className="film-credits">
                 <h2>That’s your picture.</h2>
-                <p>Sound by the people in this room.</p>
+                <p>
+                  {replayed?.label || "Current soundtrack"} · Sound by the
+                  people in this room.
+                </p>
                 <div>
                   {roles.map((r) => (
                     <span key={r}>
                       <strong>{roleInfo[r].title}</strong>
-                      {s.clips.find((c) => c.id === s.casts[r]?.clipId)
-                        ?.contributor || "The crew"}
+                      {(replayed?.clips || s.clips).find(
+                        (c) => c.id === (replayed?.casts || s.casts)[r]?.clipId,
+                      )?.contributor || "The crew"}
                     </span>
                   ))}
                 </div>
@@ -894,12 +1059,15 @@ function Studio({
             <button
               className="button primary"
               disabled={
-                !!busy ||
-                preparing ||
-                (!allCast && !playing) ||
+                (!playing && !preparing && !!busy) ||
+                (!allCast && !playing && !preparing) ||
                 (!playing && !!s.recording)
               }
-              onClick={() => action("Preparing premiere", play)}
+              onClick={() =>
+                playing || preparing
+                  ? stop()
+                  : action("Preparing premiere", () => play())
+              }
             >
               {preparing ? (
                 <RefreshCw className="spin" size={19} />
@@ -909,7 +1077,7 @@ function Studio({
                 <Play size={19} fill="currentColor" />
               )}
               {preparing
-                ? "Preparing soundtrack"
+                ? "Cancel preparation"
                 : playing
                   ? "Stop premiere"
                   : s.premieres
@@ -975,7 +1143,9 @@ function Studio({
             <h2>Bring the crew in.</h2>
           </div>
           <p>
-            {codeActive ? "Scan with a phone camera." : "Need another microphone?"}
+            {codeActive
+              ? "Scan with a phone camera."
+              : "Need another microphone?"}
             <br />
             {codeActive
               ? "The phone is your microphone."
@@ -997,17 +1167,25 @@ function Studio({
                 Math.max(
                   1,
                   Math.ceil(((s.codeExpires || 0) - pairingNow) / 60000),
-                ) + " min"
+                ) +
+                " min"
               : "Pairing code expired · Your paired crew can keep creating."}
           </p>
-          <div className="pair-actions" style={!codeActive ? { flexWrap: "wrap", paddingTop: 8 } : undefined}>
+          <div
+            className="pair-actions"
+            style={
+              !codeActive ? { flexWrap: "wrap", paddingTop: 8 } : undefined
+            }
+          >
             <button
               className="text-link"
               aria-disabled={!codeActive}
               onClick={() => {
                 if (!codeActive) {
                   refreshCodeButton.current?.focus({ preventScroll: true });
-                  notice("Pairing code expired. Refresh it to invite more crew.");
+                  notice(
+                    "Pairing code expired. Refresh it to invite more crew.",
+                  );
                   return;
                 }
                 navigator.clipboard
@@ -1028,7 +1206,8 @@ function Studio({
                 )
               }
             >
-              <RefreshCw size={15} /> {codeActive ? "New code" : "Refresh pairing code"}
+              <RefreshCw size={15} />{" "}
+              {codeActive ? "New code" : "Refresh pairing code"}
             </button>
           </div>
           <div className="crew-list">
@@ -1055,6 +1234,221 @@ function Studio({
           )}
         </aside>
       </div>
+      <section
+        className="saved-cuts"
+        id="cuts-panel"
+        tabIndex={-1}
+        aria-label="Compare saved cuts"
+      >
+        <div className="section-head">
+          <div>
+            <h2>Same picture. Two soundtracks.</h2>
+            <p>
+              Save the current three-role cast. Replay either cut while keeping
+              your edit.
+            </p>
+          </div>
+        </div>
+        {cutError && (
+          <p role="alert">
+            {cutError}{" "}
+            <button className="text-link" onClick={refreshCuts}>
+              Retry saved cuts
+            </button>
+          </p>
+        )}
+        <div className="cut-grid">
+          {(["A", "B"] as CutSlot[]).map((slot) => {
+            const cut = cuts.find((c) => c.slot === slot);
+            const other = cuts.find((c) => c.slot !== slot);
+            const changed =
+              cut && other
+                ? roles.filter(
+                    (role) =>
+                      cut.casts[role]?.clipId !== other.casts[role]?.clipId ||
+                      cut.casts[role]?.volume !== other.casts[role]?.volume,
+                  )
+                : [];
+            const confirmation = cutConfirm?.slot === slot ? cutConfirm : null;
+            return (
+              <article
+                className={`cut-card ${cut && !cut.valid ? "invalid" : ""}`}
+                tabIndex={isTV ? -1 : undefined}
+                data-cut-slot={slot}
+                data-cut-id={cut?.id || ""}
+                key={slot}
+              >
+                <div className="cut-title">
+                  <h3>Cut {slot}</h3>
+                  <span>
+                    {cut
+                      ? cut.valid
+                        ? "Ready to replay"
+                        : "Take missing"
+                      : "Empty slot"}
+                  </span>
+                </div>
+                <p>
+                  {cut?.label ||
+                    "Cast all three roles, then save this soundtrack."}
+                </p>
+                {cut && (
+                  <ul className="cut-roles">
+                    {roles.map((role) => (
+                      <li key={role}>
+                        <strong>{roleInfo[role].title}</strong>
+                        <span>
+                          {s.clips.find((c) => c.id === cut.casts[role]?.clipId)
+                            ?.name || "Take removed"}{" "}
+                          · {Math.round((cut.casts[role]?.volume || 0) * 100)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {cut && other && (
+                  <p className="cut-difference">
+                    {changed.length
+                      ? `Different: ${changed.map((role) => roleInfo[role].title).join(", ")}`
+                      : "Same takes and volumes — these cuts sound alike."}
+                  </p>
+                )}
+                {cut && !cut.valid && (
+                  <p className="cut-invalid" role="status">
+                    A saved take was removed. Cast a replacement and save this
+                    cut again.
+                  </p>
+                )}
+                {confirmation ? (
+                  <div
+                    className="cut-confirm"
+                    role="group"
+                    aria-label={`${confirmation.kind === "save" ? "Replace" : "Delete"} Cut ${slot}`}
+                  >
+                    <p>
+                      {confirmation.kind === "save"
+                        ? `Replace Cut ${slot} with the current soundtrack?`
+                        : `Delete Cut ${slot}? Your takes and current cast stay in the studio.`}
+                    </p>
+                    <button
+                      className="button secondary"
+                      data-cut-action="cancel"
+                      onClick={dismissCutConfirm}
+                    >
+                      Keep Cut {slot}
+                    </button>
+                    <button
+                      className="button danger"
+                      data-cut-action="confirm"
+                      disabled={locked || !!s.recording}
+                      onClick={() =>
+                        cutAction(
+                          slot,
+                          confirmation.kind === "save"
+                            ? "Replacing cut"
+                            : "Deleting cut",
+                          async () => {
+                            try {
+                              if (confirmation.kind === "save")
+                                await api(base + `/cuts/${slot}`, "PUT", {
+                                  label: `Soundtrack ${slot}`,
+                                  expectedRevision:
+                                    confirmation.expectedRevision,
+                                  expectedCutId: confirmation.id,
+                                });
+                              else
+                                await api(base + `/cuts/${slot}`, "DELETE", {
+                                  cutId: confirmation.id,
+                                });
+                              dismissCutConfirm();
+                            } finally {
+                              await refreshCuts();
+                            }
+                          },
+                        )
+                      }
+                    >
+                      {confirmation.kind === "save"
+                        ? `Replace Cut ${slot}`
+                        : `Delete Cut ${slot}`}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="cut-actions">
+                    <button
+                      className="button primary"
+                      data-cut-action="play"
+                      disabled={!cut?.valid || locked || !!s.recording}
+                      onClick={() =>
+                        action(`Preparing Cut ${slot}`, () => play(cut))
+                      }
+                    >
+                      Play {slot}
+                    </button>
+                    <button
+                      className="button secondary"
+                      data-cut-action="save"
+                      disabled={!allCast || locked || !!s.recording}
+                      onClick={() => {
+                        if (cut)
+                          setCutConfirm({
+                            slot,
+                            id: cut.id,
+                            expectedRevision: s.revision,
+                            kind: "save",
+                          });
+                        else
+                          cutAction(slot, "Saving cut", async () => {
+                            try {
+                              await api(base + `/cuts/${slot}`, "PUT", {
+                                label: `Soundtrack ${slot}`,
+                                expectedRevision: s.revision,
+                                expectedCutId: null,
+                              });
+                              notice(`Cut ${slot} saved. Keep creating.`);
+                            } finally {
+                              await refreshCuts();
+                            }
+                          });
+                      }}
+                    >
+                      {cut ? `Replace ${slot}` : `Save ${slot}`}
+                    </button>
+                    {cut && (
+                      <button
+                        className="text-link"
+                        data-cut-action="delete"
+                        disabled={locked || !!s.recording}
+                        onClick={() =>
+                          setCutConfirm({
+                            slot,
+                            id: cut.id,
+                            expectedRevision: s.revision,
+                            kind: "delete",
+                          })
+                        }
+                      >
+                        Delete {slot}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </article>
+            );
+          })}
+        </div>
+        <p className="small">
+          {preparing
+            ? "Preparing the soundtrack. Back cancels."
+            : playing
+              ? "Premiere in progress. Back or Play/Pause stops it."
+              : s.recording
+                ? "Wait for the microphone to finish before saving or playing."
+                : !allCast
+                  ? "Cast three roles to save a cut."
+                  : "Your current cast stays independent of both saved cuts."}
+        </p>
+      </section>
       <section className="casting" id="cast-panel">
         <div className="section-head">
           <div>
@@ -1306,6 +1700,16 @@ function UploadTake({
   const [file, setFile] = useState<File | null>(null),
     [name, setName] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  const [auditionUrl, setAuditionUrl] = useState("");
+  useEffect(() => {
+    if (!file) {
+      setAuditionUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setAuditionUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
   const upload = async () => {
     if (!file) return;
     if (file.size > 4 * 1024 * 1024)
@@ -1358,6 +1762,11 @@ function UploadTake({
             action("Preparing take", upload);
           }}
         >
+          <audio
+            aria-label="Audition selected audio file"
+            src={auditionUrl || undefined}
+            controls
+          />
           <label>
             Name this take
             <input
@@ -1420,7 +1829,7 @@ function Microphone({
   const release = () => {
     stream.current?.getTracks().forEach((t) => t.stop());
     stream.current = null;
-    meter.current?.close();
+    void meter.current?.close().catch(() => {});
     meter.current = null;
     cancelAnimationFrame(frame.current);
     if (timer.current) clearTimeout(timer.current);
@@ -1448,7 +1857,9 @@ function Microphone({
     const hide = () => {
       if (document.hidden && (opening.current || stream.current)) {
         cancel();
-        setRecordingError("Recording stopped when you left the studio. Tap Record to try again.");
+        setRecordingError(
+          "Recording stopped when you left the studio. Tap Record to try again.",
+        );
       }
     };
     document.addEventListener("visibilitychange", hide);
@@ -1478,7 +1889,9 @@ function Microphone({
         "Microphone recording needs HTTPS (or localhost). Use an audio upload here, or open the secure studio link.",
       );
     if (typeof MediaRecorder === "undefined")
-      throw new Error("This browser cannot record audio. Use an audio upload or another browser.");
+      throw new Error(
+        "This browser cannot record audio. Use an audio upload or another browser.",
+      );
     const request = ++generation.current;
     const current = () => mounted.current && request === generation.current;
     setRecordingError("");
@@ -1527,10 +1940,13 @@ function Microphone({
         if (take.size) {
           setBlob(take);
           setName(
-            "Take " + (s.clips.filter((c) => c.member_id === s.me.id).length + 1),
+            "Take " +
+              (s.clips.filter((c) => c.member_id === s.me.id).length + 1),
           );
         } else {
-          setRecordingError("No sound was captured. Record another take or upload an audio file.");
+          setRecordingError(
+            "No sound was captured. Record another take or upload an audio file.",
+          );
         }
         recorder.current = null;
         release();
@@ -1543,7 +1959,9 @@ function Microphone({
         generation.current++;
         recorder.current = null;
         setBlob(null);
-        setRecordingError("Recording was interrupted. Your take was not sent. Tap Record to try again.");
+        setRecordingError(
+          "Recording was interrupted. Your take was not sent. Tap Record to try again.",
+        );
         release();
         void endRecording();
       };
@@ -1613,7 +2031,11 @@ function Microphone({
         </p>
       </div>
       <section className={`recorder ${recording ? "recording" : ""}`}>
-        {recordingError && <p className="alert" role="alert">{recordingError}</p>}
+        {recordingError && (
+          <p className="alert" role="alert">
+            {recordingError}
+          </p>
+        )}
         <div className="record-status">
           <span className={recording ? "live-dot" : "quiet-dot"} />
           {recording
@@ -1668,7 +2090,7 @@ function Microphone({
               action("Preparing take", send);
             }}
           >
-            <audio src={url} controls />
+            <audio src={url || undefined} controls />
             <label>
               Name your sound
               <input

@@ -2,11 +2,15 @@
 
 The public deployment is [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io), with the TV route at [/tv](https://foley.13.204.212.172.sslip.io/tv). Amazon Lightsail hosts the Node.js service, ffmpeg processing and persistent SQLite storage. Docker Compose runs one app container behind Caddy. Caddy serves publicly trusted HTTPS; only ports 80 and 443 are exposed for application traffic. SSH is restricted to the administrator's IPv4 address. The app port is not published. Caddy replaces client-supplied forwarding headers; `TRUST_PROXY=1` must not be used if users can reach the app directly.
 
-[Public 1:59 demo](https://www.youtube.com/watch?v=F-AeLUo3wQ4): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
+[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
 
-## Verified deployment (30 September 2026)
+## Latest recorded hosted acceptance (4 October 2026)
 
-The host runs the independently reviewed application revision [`af1cf81318a33b713656e0e655b978f359762b6e`](https://github.com/himanshu748/foley/commit/af1cf81318a33b713656e0e655b978f359762b6e). Later native-CI changes are separate from this deployed application revision.
+The last verified hosted source is [`3c59fb9e6d6aeefe1268cf6c8f6c71a99bdd087b`](https://github.com/himanshu748/foley/commit/3c59fb9e6d6aeefe1268cf6c8f6c71a99bdd087b), with app image `sha256:a96eb4db3a3f2c8bdaf82d631470a9256b60059cf774b0773f5713624507c667`; host readback was rechecked on 9 October. HTTPS health, exact browser bundle, private/non-root container, persistent volume, pairing-code rotation with member/take preservation, anonymous rejection and disposable-studio cleanup passed. This receipt predates v1.1 saved cuts. Bind each subsequent deployment and APK to its own source, image digest, acceptance results and [versioned release metadata](https://github.com/himanshu748/foley/releases); source changes alone are not deployment evidence.
+
+## Historical deployment receipt (30 September 2026)
+
+At that checkpoint, the host ran the independently reviewed application revision [`af1cf81318a33b713656e0e655b978f359762b6e`](https://github.com/himanshu748/foley/commit/af1cf81318a33b713656e0e655b978f359762b6e). This historical source/image receipt is retained separately from the later hosted acceptance above.
 
 The live acceptance checks passed:
 
@@ -48,6 +52,8 @@ Replace the example hostname with the actual DNS hostname. Never put bearer toke
 
 ## Judge APK and validation
 
+Run Judge APK on v1.1 source only after its image is deployed and passes hosted acceptance. The shared instrumentation now requires saved-cut endpoints; an older public deployment cannot pass the comparison steps.
+
 The manual **Container acceptance** workflow first checks the Docker image and
 the existing Compose/Caddy configuration on a disposable GitHub runner. It uses
 `localhost` and [Caddy's local CA](https://caddyserver.com/docs/automatic-https#local-https),
@@ -68,7 +74,7 @@ The public origin and exact installed APK passed [Judge APK run 36752896970](htt
 
 Install the resulting artifact on an Android TV emulator or Fire TV, then verify remote navigation, pairing, casting, premiere, credits and the actual captured output audio. A successful APK build alone is not runtime proof. Label API fixtures or uploaded test audio explicitly. Physical-phone microphone capture is an optional additional quality check, not a requirement of the accepted emulator route. The earlier emulator test used synthetic audio and a temporary runner origin; it does not establish this hosted build.
 
-The 118.5-second demo retains the full premiere and its actual emulator output audio, without narration or added music during playback. The API crew uploads one generated tone used for all three roles; a separate contributor-browser sequence is labeled as another edited run. The browser test studio was deleted; native test studios expire after six hours. Physical Fire TV and phone microphone behavior remain unverified. See the [friction log](../docs/FRICTION-LOG.md) for the observed focus, recorder and bootstrap issues.
+The current 89-second demo retains the distinct-sound premiere and its actual emulator output audio. Its three sound fixtures are labeled original synthetic inputs; the separate contributor-browser scene is labeled as edited stills. It predates saved A/B slots. The earlier 118.5-second tone demo remains historical evidence rather than the current submission video. The browser test studio was deleted; native test studios expire after six hours. Physical Fire TV and phone microphone behavior remain unverified. See the [friction log](../docs/FRICTION-LOG.md) for the observed focus, recorder and bootstrap issues.
 
 ## Operating the server
 

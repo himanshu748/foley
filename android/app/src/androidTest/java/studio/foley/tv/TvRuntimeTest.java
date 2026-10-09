@@ -214,6 +214,61 @@ public class TvRuntimeTest {
             capture("08-tv-second-cut-credits");
             state=request(base,"GET",host,null,false);
             assertEquals("Recast premiere receipt",2,state.getInt("premieres"));
+
+            // Keep both existing sound-output gates above. The comparison uses
+            // the distinct soundtrack as A and changes only Creature for B.
+            until("!document.querySelector('[data-cut-slot=A] [data-cut-action=save]').disabled");
+            read("document.querySelector('[data-cut-slot=A] [data-cut-action=save]').focus()");
+            key(KeyEvent.KEYCODE_DPAD_CENTER);
+            until("document.querySelector('[data-cut-slot=A]').dataset.cutId.length>0");
+            state=request(base,"GET",host,null,false);
+            request(base+"/cast","POST",host,json(new JSONObject().put("role","creature").put("clipId",clip.getString("id")).put("revision",state.getInt("revision")).put("volume",0.8)),false);
+            until("document.querySelectorAll('.role-tab span')[2].textContent==='Generated TV test tone'");
+            until("!document.querySelector('[data-cut-slot=B] [data-cut-action=save]').disabled");
+            read("document.querySelector('[data-cut-slot=B] [data-cut-action=save]').focus()");
+            key(KeyEvent.KEYCODE_DPAD_CENTER);
+            until("document.querySelector('[data-cut-slot=B]').dataset.cutId.length>0");
+            until("document.querySelector('[data-cut-slot=A] .cut-difference').textContent==='Different: Creature'");
+            read("document.querySelector('#cuts-panel').scrollIntoView({block:'start'})");
+            capture("09-tv-saved-cuts-one-role-difference");
+            state=request(base,"GET",host,null,false);
+            String activeBefore=state.getJSONObject("casts").toString();
+            int revisionBefore=state.getInt("revision");
+            // The saved card may render before the enclosing action clears busy.
+            until("!document.querySelector('[data-cut-slot=A] [data-cut-action=play]').disabled");
+            // Exercise the native media key while focus identifies the saved cut.
+            read("document.querySelector('[data-cut-slot=A] [data-cut-action=play]').focus()");
+            key(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE);
+            until("document.querySelector('.screen.is-playing[data-playback-cut=A]')");
+            until("parseInt(document.querySelector('.screen-top > span:last-child').textContent,10)>=3");
+            capture("10-tv-replaying-saved-a");
+            until("document.querySelector('.film-credits') && !document.querySelector('.screen.is-playing')");
+            until("document.querySelector('.film-credits').innerText.includes('Cut A · Soundtrack A')");
+            settleCreditsVisualState();
+            capture("11-tv-saved-a-credits");
+            state=request(base,"GET",host,null,false);
+            assertEquals("Saved replay appends a third receipt",3,state.getInt("premieres"));
+            assertEquals("Saved replay preserves the current edit",activeBefore,state.getJSONObject("casts").toString());
+            assertEquals("Saved replay preserves the current revision",revisionBefore,state.getInt("revision"));
+            assertEquals("Current Creature remains Cut B",clip.getString("id"),state.getJSONObject("casts").getJSONObject("creature").getString("clipId"));
+            JSONObject saved=request(base+"/cuts","GET",host,null,false);
+            assertEquals("Both comparison slots persist",2,saved.getJSONArray("cuts").length());
+
+            // Capture the changed Creature in B as native output as well as A.
+            until("!document.querySelector('[data-cut-slot=B] [data-cut-action=play]').disabled");
+            read("document.querySelector('[data-cut-slot=B] [data-cut-action=play]').focus()");
+            key(KeyEvent.KEYCODE_DPAD_CENTER);
+            until("document.querySelector('.screen.is-playing[data-playback-cut=B]')");
+            until("parseInt(document.querySelector('.screen-top > span:last-child').textContent,10)>=3");
+            capture("12-tv-replaying-saved-b");
+            until("document.querySelector('.film-credits') && !document.querySelector('.screen.is-playing')");
+            until("document.querySelector('.film-credits').innerText.includes('Cut B · Soundtrack B')");
+            settleCreditsVisualState();
+            capture("13-tv-saved-b-credits");
+            state=request(base,"GET",host,null,false);
+            assertEquals("Saved B appends a fourth receipt",4,state.getInt("premieres"));
+            assertEquals("Both saved replays preserve the current edit",activeBefore,state.getJSONObject("casts").toString());
+            assertEquals("Both saved replays preserve the current revision",revisionBefore,state.getInt("revision"));
         }catch(Throwable error){capture("failure");throw error;}
     }
 }

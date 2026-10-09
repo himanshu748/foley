@@ -24,6 +24,8 @@ export function createStore(path, clock = Date.now) {
   db.exec(`CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, title TEXT NOT NULL, code TEXT UNIQUE NOT NULL, code_until INTEGER NOT NULL, expires INTEGER NOT NULL, revision INTEGER NOT NULL DEFAULT 0, casts TEXT NOT NULL DEFAULT '{}', premieres INTEGER NOT NULL DEFAULT 0, recording_member TEXT, recording_until INTEGER DEFAULT 0, playing_until INTEGER DEFAULT 0, created INTEGER NOT NULL);
   CREATE TABLE IF NOT EXISTS members(id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, name TEXT NOT NULL, token_hash TEXT UNIQUE NOT NULL, kind TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS clips(id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE, name TEXT NOT NULL, duration REAL NOT NULL, bytes BLOB NOT NULL, created INTEGER NOT NULL, peaks TEXT NOT NULL DEFAULT '[]');
+  CREATE TABLE IF NOT EXISTS cuts(id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, slot TEXT NOT NULL CHECK(slot IN ('A','B')), label TEXT NOT NULL, casts TEXT NOT NULL, source_revision INTEGER NOT NULL, created INTEGER NOT NULL, updated INTEGER NOT NULL, UNIQUE(session_id,slot));
+  CREATE TABLE IF NOT EXISTS playback_leases(session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE, playback_id TEXT NOT NULL REFERENCES premieres(id) ON DELETE CASCADE);
   CREATE TABLE IF NOT EXISTS premieres(id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, casts TEXT NOT NULL, created INTEGER NOT NULL);`);
   if (
     !db
@@ -62,6 +64,128 @@ export function createStore(path, clock = Date.now) {
   function idle(s) {
     if (s.playing_until > clock())
       fail(409, "The premiere is playing. Wait for it to finish.");
+  }
+  function transaction(fn) {
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = fn();
+      db.exec("COMMIT");
+      return result;
+    } catch (error) {
+      // SQLite can already have rolled back (for example RAISE(ROLLBACK)).
+      // Preserve the original action error if cleanup itself fails.
+      try {
+        db.exec("ROLLBACK");
+      } catch {}
+      throw error;
+    }
+  }
+  function slotName(slot) {
+    if (slot !== "A" && slot !== "B") fail(400, "Choose Cut A or Cut B.");
+  }
+  function noRecording(s) {
+    if (s.recording_until > clock())
+      fail(409, "A microphone is rolling. Wait for that take to finish.");
+  }
+  function validateCasts(id, raw) {
+    let casts;
+    try {
+      casts = JSON.parse(raw);
+    } catch {
+      fail(409, "This soundtrack is invalid. Save a new version.");
+    }
+    if (
+      !casts ||
+      typeof casts !== "object" ||
+      Array.isArray(casts) ||
+      Object.keys(casts).length !== 3 ||
+      ROLES.some((role) => {
+        const c = casts[role];
+        return (
+          !c ||
+          typeof c.clipId !== "string" ||
+          !Number.isFinite(c.volume) ||
+          c.volume < 0 ||
+          c.volume > 1
+        );
+      })
+    )
+      fail(409, "Cast all three sound roles before the premiere.");
+    const missingClipIds = [
+      ...new Set(ROLES.map((r) => casts[r].clipId)),
+    ].filter(
+      (cid) =>
+        !db
+          .prepare(
+            "SELECT id FROM clips WHERE id=? AND session_id=? AND length(bytes)>0",
+          )
+          .get(cid, id),
+    );
+    return { casts, missingClipIds };
+  }
+  function presentCut(c) {
+    let casts = {},
+      missingClipIds = [],
+      valid = false;
+    try {
+      ({ casts, missingClipIds } = validateCasts(c.session_id, c.casts));
+      valid = !missingClipIds.length;
+    } catch (error) {
+      // A malformed snapshot remains visible and removable; storage failures
+      // still propagate instead of being misreported as a damaged cut.
+      if (error.status !== 409) throw error;
+    }
+    return {
+      id: c.id,
+      slot: c.slot,
+      label: c.label,
+      casts,
+      sourceRevision: c.source_revision,
+      created: c.created,
+      updated: c.updated,
+      valid,
+      missingClipIds,
+      roles: [...ROLES],
+    };
+  }
+  function exactCut(id, slot, cutId) {
+    slotName(slot);
+    if (typeof cutId !== "string" || !cutId)
+      fail(400, "Choose the saved cut to use.");
+    const c = db
+      .prepare("SELECT * FROM cuts WHERE session_id=? AND slot=?")
+      .get(id, slot);
+    if (!c || c.id !== cutId)
+      fail(409, "This cut changed. Review the latest saved version.");
+    return c;
+  }
+  function completeCasts(id, raw) {
+    const result = validateCasts(id, raw);
+    if (result.missingClipIds.length) {
+      const error = new Error(
+        "A take used in this cut was removed. Save a new version.",
+      );
+      error.status = 409;
+      error.missingClipIds = result.missingClipIds;
+      throw error;
+    }
+    return result.casts;
+  }
+  function claimPlayback(id, casts) {
+    const playbackId = randomUUID();
+    db.prepare("INSERT INTO premieres VALUES(?,?,?,?)").run(
+      playbackId,
+      id,
+      JSON.stringify(casts),
+      clock(),
+    );
+    db.prepare(
+      "INSERT INTO playback_leases VALUES(?,?) ON CONFLICT(session_id) DO UPDATE SET playback_id=excluded.playback_id",
+    ).run(id, playbackId);
+    db.prepare(
+      "UPDATE sessions SET playing_until=?,premieres=premieres+1 WHERE id=?",
+    ).run(clock() + 22000, id);
+    return playbackId;
   }
   function snapshot(id, m) {
     const s = get(id);
@@ -255,30 +379,127 @@ export function createStore(path, clock = Date.now) {
       else if (s.recording_member === m.id)
         db.prepare("UPDATE sessions SET recording_until=0 WHERE id=?").run(id);
     },
-    play(id, tokens, revision) {
+    listCuts(id, tokens) {
       host(id, tokens);
-      const s = get(id);
-      idle(s);
-      if (s.recording_until > clock())
-        fail(409, "A microphone is rolling. Wait for that take to finish.");
-      if (s.revision !== revision)
-        fail(409, "The cast changed. Prepare the latest soundtrack again.");
-      const casts = JSON.parse(s.casts);
-      if (ROLES.some((r) => !casts[r]))
-        fail(409, "Cast all three sound roles before the premiere.");
-      db.prepare(
-        "UPDATE sessions SET playing_until=?,premieres=premieres+1 WHERE id=?",
-      ).run(clock() + 22000, id);
-      db.prepare("INSERT INTO premieres VALUES(?,?,?,?)").run(
-        randomUUID(),
-        id,
-        s.casts,
-        clock(),
-      );
+      return db
+        .prepare("SELECT * FROM cuts WHERE session_id=? ORDER BY slot")
+        .all(id)
+        .map(presentCut);
     },
-    stop(id, tokens) {
-      host(id, tokens);
-      db.prepare("UPDATE sessions SET playing_until=0 WHERE id=?").run(id);
+    saveCut(id, tokens, slot, body) {
+      return transaction(() => {
+        host(id, tokens);
+        slotName(slot);
+        if (
+          !body ||
+          typeof body !== "object" ||
+          Array.isArray(body) ||
+          Object.keys(body).some(
+            (k) => !["label", "expectedRevision", "expectedCutId"].includes(k),
+          )
+        )
+          fail(
+            400,
+            "Save a label and the current studio and cut versions only.",
+          );
+        const label = text(body.label, 32, "Cut label");
+        if (
+          !Number.isInteger(body.expectedRevision) ||
+          body.expectedRevision < 0 ||
+          !(
+            body.expectedCutId === null ||
+            (typeof body.expectedCutId === "string" && body.expectedCutId)
+          )
+        )
+          fail(400, "Review the current studio and saved cut before saving.");
+        const s = get(id);
+        idle(s);
+        noRecording(s);
+        if (s.revision !== body.expectedRevision)
+          fail(
+            409,
+            "The studio changed. Review the latest cast before saving.",
+          );
+        const old = db
+          .prepare("SELECT * FROM cuts WHERE session_id=? AND slot=?")
+          .get(id, slot);
+        if ((old?.id ?? null) !== body.expectedCutId)
+          fail(409, "This cut changed. Review it before replacing it.");
+        const casts = completeCasts(id, s.casts),
+          now = clock(),
+          cutId = randomUUID();
+        db.prepare(
+          "INSERT INTO cuts VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(session_id,slot) DO UPDATE SET id=excluded.id,label=excluded.label,casts=excluded.casts,source_revision=excluded.source_revision,updated=excluded.updated",
+        ).run(
+          cutId,
+          id,
+          slot,
+          label,
+          JSON.stringify(casts),
+          s.revision,
+          now,
+          now,
+        );
+        return {
+          cut: presentCut(
+            db.prepare("SELECT * FROM cuts WHERE id=?").get(cutId),
+          ),
+          created: !old,
+        };
+      });
+    },
+    playCut(id, tokens, slot, cutId) {
+      return transaction(() => {
+        host(id, tokens);
+        const s = get(id);
+        idle(s);
+        noRecording(s);
+        const c = exactCut(id, slot, cutId),
+          casts = completeCasts(id, c.casts);
+        return {
+          ok: true,
+          cutId: c.id,
+          durationMs: 20000,
+          casts,
+          playbackId: claimPlayback(id, casts),
+        };
+      });
+    },
+    deleteCut(id, tokens, slot, cutId) {
+      return transaction(() => {
+        host(id, tokens);
+        idle(get(id));
+        const c = exactCut(id, slot, cutId);
+        db.prepare("DELETE FROM cuts WHERE id=?").run(c.id);
+      });
+    },
+    play(id, tokens, revision) {
+      return transaction(() => {
+        host(id, tokens);
+        const s = get(id);
+        idle(s);
+        noRecording(s);
+        if (s.revision !== revision)
+          fail(409, "The cast changed. Prepare the latest soundtrack again.");
+        return claimPlayback(id, completeCasts(id, s.casts));
+      });
+    },
+    stop(id, tokens, playbackId) {
+      return transaction(() => {
+        host(id, tokens);
+        if (playbackId !== undefined) {
+          if (typeof playbackId !== "string" || !playbackId)
+            fail(400, "Choose the premiere to stop.");
+          const lease = db
+            .prepare(
+              "SELECT playback_id FROM playback_leases WHERE session_id=?",
+            )
+            .get(id);
+          if (lease?.playback_id !== playbackId) return;
+        }
+        db.prepare("UPDATE sessions SET playing_until=0 WHERE id=?").run(id);
+        db.prepare("DELETE FROM playback_leases WHERE session_id=?").run(id);
+      });
     },
     clip(id, cid, tokens) {
       member(id, tokens);

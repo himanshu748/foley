@@ -1,12 +1,12 @@
 # Foley: TV delivery and demo evidence
 
-Updated 30 September 2026. The public backend runs on Amazon Lightsail at [the hosted TV origin](https://foley.13.204.212.172.sslip.io/tv). The current public-origin APK run is [36752896970](https://github.com/himanshu748/foley/actions/runs/36752896970); its native navigation, premiere, credits and recorded output-audio checks passed. The exact installed APK is available in the [judging release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). This document distinguishes the current delivery from historical tests and future playtests. Google Android TV API 34 emulator evidence does not establish physical Fire TV performance.
+Updated 9 October 2026. Application [`68b235a`](https://github.com/himanshu748/foley/commit/68b235ab5dade3dfb67ad36ae5866f24a7c72cac) is deployed on [Amazon Lightsail](https://foley.13.204.212.172.sslip.io/tv). [Browser/native CI](https://github.com/himanshu748/foley/actions/runs/37896025801) and [public-origin Judge APK run 37896967098](https://github.com/himanshu748/foley/actions/runs/37896967098) passed. The exact tested APK is in the [9 October v1.1 judging prerelease](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-09-v1-1). The native run covers four full premieres, saved A/B replay and unchanged current B editing state, with output audio captured from the emulator. Google Android TV API 34 evidence does not establish physical Fire TV performance or physical phone capture.
 
-[Public 1:59 demo](https://www.youtube.com/watch?v=F-AeLUo3wQ4): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
+[Current 89-second public demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): labeled original synthetic sounds, captured emulator audio and English Deepgram narration/captions. It predates saved A/B slots; no replacement public video is claimed here.
 
 ## What the TV controls now do
 
-Open `/tv` for the shared director surface. Start receives initial remote focus. Pair crew, Cast sounds and Premiere provide explicit stage jumps; their counts come from the current studio. Arrow keys move spatially, and Enter selects. Back first stops a premiere or preparation, cancels a pending studio-deletion confirmation, exits fullscreen, then returns to the TV start screen. Media Play/Pause uses the same playback action as the visible controls.
+Open `/tv` for the shared director surface. Start receives initial remote focus. Pair crew, Cast sounds, Premiere and Compare cuts provide explicit stage jumps; their counts come from the current studio. Arrow keys move spatially, and Enter selects. Back first stops a premiere or preparation, cancels a pending cut or studio-deletion confirmation, exits fullscreen, then returns to the TV start screen. Media Play/Pause targets the focused saved cut; it does not start playback through an open confirmation. Save, Replace and Delete retain focus within their cut card.
 
 The start screen can resume the most recently saved, unexpired studio. Browser storage holds its ID, title and expiry only; the server must still authorize the host cookie before Resume appears. Ending the studio clears the shortcut. This does not add recovery for a lost cookie.
 
@@ -27,7 +27,7 @@ npm run test:tv
 
 Results and captures go to `.impeccable/review/tv-*`; the existing phone regression writes its usual `browser-*` evidence. The result JSON is the source for pass/fail status. A partially executed test or a screenshot alone is not a complete pass.
 
-Final local run on 12 September: all 10 TV checks and the complete phone workflow passed with zero page JavaScript errors. The TV/phone screenshots were inspected at 1280×720 and 390px, with no horizontal overflow. All 19 domain/API tests and the TypeScript/production build passed; the Impeccable detector returned no findings. The runtime-audit refresh did not complete, so this update makes no fresh advisory-count claim. Dependencies were unchanged. All browser test resources closed on completion.
+Historical local run on 12 September: all 10 TV checks and the complete phone workflow passed with zero page JavaScript errors. The TV/phone screenshots were inspected at 1280×720 and 390px, with no horizontal overflow. All 19 domain/API tests and the TypeScript/production build passed; the Impeccable detector returned no findings. The runtime-audit refresh did not complete, so this update makes no fresh advisory-count claim. Dependencies were unchanged. All browser test resources closed on completion.
 
 ## Native and official simulator gate
 
@@ -71,7 +71,7 @@ Specific feedback for the platform documentation: the remote behavior matrix mad
 
 Human playtesting, time-to-first-premiere, recognizable mix quality and willingness to remix remain unmeasured. [AWS Lightsail hosting and public HTTPS have passed deployment checks](deploy/README.md).
 
-## Verified Android TV run — 28 September
+## Historical Android TV run — 28 September
 
 [Run 36393598341](https://github.com/himanshu748/foley/actions/runs/36393598341) passed on source commit `c9f7bff`. The instrumented test covers launch, remote selection, pairing, D-pad movement, Back and studio resume, synthetic WAV upload through the real normalization API, casting all three roles, full 20-second playback, credits and the server premiere count. The test also verifies that the film remains inside the viewport during playback and credits.
 
@@ -80,6 +80,6 @@ A prior run exposed a focus bug: disabling the Premiere button moved focus to na
 The public MIT source is https://github.com/himanshu748/foley. That earlier CI APK targets an ephemeral runner-only HTTPS server. The later public Lightsail deployment has passed HTTPS, pairing, private audio, casting, persistence and deletion checks. The later [public-origin run](https://github.com/himanshu748/foley/actions/runs/36752896970) passed its native output-audio gate and is the source of the [judging APK release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). Physical phone recording and group playtesting remain additional quality checks; the [event FAQ](https://amazonappdev2026.devpost.com/details/faqs) permits an Android TV emulator submission.
 
 
-## v1.1 native regression extension (9 October source)
+## Verified v1.1 native run — 9 October
 
-The instrumentation retains the original first 260 Hz tone premiere and second distinct-sound premiere. It then saves that distinct soundtrack as A, changes only Creature to the existing tone, saves B, and uses the native media key on A. It then replays B, checks both saved credits, the fourth receipt and unchanged current B cast/revision. Screenshots 09–13 cover cards, saved replay and credits. The ordinary CI capture budget is 180 seconds; that workflow uses `-noaudio` and establishes no new output-audio evidence. The separate public-origin judge workflow retains its captured-audio gate and 180-second recording limit. Added instrumentation is source until a new CI run passes; no local JDK/SDK was available for this pass.
+The instrumentation retains the original first 260 Hz tone premiere and second distinct-sound premiere. It then saves that distinct soundtrack as A, changes only Creature to the existing tone, saves B, and uses the native media key on A. It then replays B, checks both saved credits, the fourth receipt and unchanged current B cast/revision. Screenshots 09–13 cover cards, saved replay and credits. The ordinary CI capture budget is 180 seconds; that workflow uses `-noaudio` and establishes no new output-audio evidence. The separate public-origin judge workflow retains its captured-audio gate and 180-second recording limit. The full sequence passed [public-origin run 37896967098](https://github.com/himanshu748/foley/actions/runs/37896967098) against deployed application `68b235ab5dade3dfb67ad36ae5866f24a7c72cac`. Its 144.36-second native WebM audio stream passed generated-tone detection. This verifies captured synthetic emulator output, not physical speakers or a phone microphone. The separate [branch browser/native run](https://github.com/himanshu748/foley/actions/runs/37896025801) also passed; its `-noaudio` configuration supplies no output-audio proof.

@@ -1,10 +1,18 @@
 # Building the Fire OS launcher
 
-This is a small Android WebView launcher for the TV surface. The backend is deployed at [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io) on Amazon Lightsail, using reviewed application revision [`af1cf813`](https://github.com/himanshu748/foley/commit/af1cf81318a33b713656e0e655b978f359762b6e). The paired contributor browser supplies recordings or uploads; the launcher requests only internet access.
+This is a small Android WebView launcher for the TV surface. The backend is deployed at [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io) on Amazon Lightsail, using application revision [`68b235a`](https://github.com/himanshu748/foley/commit/68b235ab5dade3dfb67ad36ae5866f24a7c72cac). The paired contributor browser supplies recordings or uploads; the launcher requests only internet access.
 
-[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, three labeled original synthetic sounds, captured emulator audio and English Deepgram narration with timed English captions. It combines the original remote-navigation recording with the additional 3 October run's full movie. The earlier [30 September tone demonstration](https://www.youtube.com/watch?v=F-AeLUo3wQ4) remains available as historical evidence for the released APK below.
+[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, three labeled original synthetic sounds, captured emulator audio and English Deepgram narration with timed English captions. It combines the original remote-navigation recording with the additional 3 October run's full movie. The earlier [30 September tone demonstration](https://www.youtube.com/watch?v=F-AeLUo3wQ4) remains available as historical evidence for the historical APK receipt below. The current public video predates saved A/B slots.
 
-## Verified judge build (30 September 2026)
+## Verified v1.1 judge build (9 October 2026)
+
+Download the [v1.1 judging prerelease](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-09-v1-1). Application/APK source: `68b235ab5dade3dfb67ad36ae5866f24a7c72cac`. APK SHA-256: `ad595d936b7ff4d5375be624f2195b858fd5a90ae4cbd0c6a2afbdb74c342d50`. The release's `build.json` binds this source, the public HTTPS origin and exact installed artifact. These identify the tested application independently of later documentation-only commits.
+
+[Browser and native CI](https://github.com/himanshu748/foley/actions/runs/37896025801) passed, and [public-origin Judge APK run 37896967098](https://github.com/himanshu748/foley/actions/runs/37896967098) passed on Google Android TV API 34 with its installed hash verified. The four full premieres are the generated 260 Hz tone, three distinct original synthetic sounds, saved A, then saved B with only Creature changed. Assertions cover remote navigation, saved credits, four premiere receipts and preservation of the active B casts/revision while replaying saved cuts.
+
+The emulator console recording contains 144.36 seconds of native output audio; automated tone detection passed. This is synthetic-input emulator evidence, not physical speakers, physical Android-phone capture or Fire TV hardware. Those physical checks and group playtesting remain pending. The build is debug-signed for sideloading; uninstall a differently signed prior test APK before installing this artifact.
+
+## Historical judge build (30 September 2026)
 
 Download the [judging APK release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). The exact exported APK passed [run 36752896970](https://github.com/himanshu748/foley/actions/runs/36752896970) on Google Android TV API 34 against the public HTTPS origin, with its installed SHA-256 verified. D-pad navigation, Back/resume, pairing, synthetic upload/casting, the full movie and contributor credits passed. The emulator console's actual WebM audio contains the generated 260 Hz fixture tone.
 
@@ -77,6 +85,6 @@ The `Android TV runtime` GitHub Actions workflow builds the web app and installs
 
 The earlier `Android TV runtime` workflow uses an in-memory studio server and a one-day certificate for `https://10.0.2.2:4443`. Its certificate trust configuration is generated only in the ignored debug source set. The release app retains normal HTTPS validation. The artifact APK points to the temporary runner and is a test artifact, not a hosted judge demo. Build a separate APK with the actual hosted origin before distributing it.
 
-### Verified CI result — 28 September 2026
+### Historical CI result — 28 September 2026
 
 The local September inventory above is historical. [Run 36393598341](https://github.com/himanshu748/foley/actions/runs/36393598341) successfully compiled and installed the APK on the Android TV API 34 emulator. The test includes real API upload/normalization of generated audio, three cast roles, a complete 20-second premiere, credits, viewport visibility and one persisted premiere. Screenshots and a silent native screen recording were inspected. That native run does not establish physical Fire TV performance, real microphone capture or operation of the later public-origin judge APK. The later public-origin APK passed its own runtime and recorded-audio check on 30 September, as documented above.

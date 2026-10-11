@@ -4,7 +4,7 @@
 
 Your living room is the sound crew for an original twenty-second movie. Start a studio, pair a phone, record or upload short sounds, cast them as footsteps/weather/creature, premiere the synchronized film, and recast a role for another cut.
 
-[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, labeled original synthetic sounds, captured emulator audio and English Deepgram narration with timed English captions. The main premiere uses the additional 3 October run's distinct sounds; physical Fire TV and group playtesting remain unverified. On 11 October, the user reported successful recording and playback in Android Chrome through the live Foley join flow; this is user-reported phone evidence, not an independently captured or measured test.
+[Current 138-second demo](https://www.youtube.com/watch?v=8bk0C7nP4Wk): the 11 October Google Android TV API 34 build against the public HTTPS server, complete saved A/B premieres with captured emulator audio, labeled original synthetic sounds, and Deepgram narration with timed English captions. The edited contributor-browser segment uses actual 9 October app states. Physical Fire TV and group playtesting remain unverified. On 11 October, the user reported successful recording and playback in Android Chrome through the live Foley join flow; this is user-reported phone evidence, not an independently captured or measured test.
 
 The [hosted TV interface](https://foley.13.204.212.172.sslip.io/tv) runs against a persistent backend on Amazon Lightsail. The app also runs locally without an AWS account or credentials. New studios start empty, with no generated demonstration recordings or prefilled cast.
 
@@ -14,11 +14,11 @@ Historical 9 October v1.1 evidence: application [`68b235a`](https://github.com/h
 
 Application [`2f180109`](https://github.com/himanshu748/foley/commit/2f180109c103f32fb5f47ac8e2bddc597bb32be8) is deployed on the public HTTPS origin. Its exact HTML, JavaScript and CSS matched the reviewed build, and all 14 hosted acceptance checks passed. This update preserves deliberate TV focus moves while saved-cut actions finish and restores the intended TV, large-browser and touch-control sizes. The native test's Cut B now uses a distinct original alternate Creature sound; the first diagnostic-tone premiere is unchanged. [Browser/native CI](https://github.com/himanshu748/foley/actions/runs/38103195945) and [public-origin Judge APK run](https://github.com/himanshu748/foley/actions/runs/38103332355) passed on that exact source, including all four premieres, saved A/B replay and native output-audio verification. [Deployment details](deploy/README.md) and [Android evidence](android/BUILDING.md) keep hosted and emulator receipts distinct.
 
-Download the exact [11 October tested judging APK](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-11-polish). Its SHA-256 is `4bffdc992224101195e69a5733252c9876559c484173b45ef3bd08908627511b`; the release includes source/origin build metadata, checksum and native-audio verification. The public 89-second video remains the earlier cut and does not show this new comparison.
+Download the exact [11 October tested judging APK](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-11-polish). Its SHA-256 is `4bffdc992224101195e69a5733252c9876559c484173b45ef3bd08908627511b`; the release includes source/origin build metadata, checksum and native-audio verification. The [current public demo](https://www.youtube.com/watch?v=8bk0C7nP4Wk) shows this saved-cut comparison and both complete premieres.
 
 ## Saved A/B cuts
 
-The deployed v1.1 app adds two private soundtrack snapshots. Save a complete cast as A, change one role and save B, then replay either without replacing the current edit. The cards show changed roles and volumes; replacing or deleting a saved cut requires confirmation. See [behavior, API and validation boundaries](docs/SAVED-CUTS.md). The current 89-second public video predates saved cuts; the 9 and 11 October native runtime receipts verify the flow.
+The deployed v1.1 app adds two private soundtrack snapshots. Save a complete cast as A, change one role and save B, then replay either without replacing the current edit. The cards show changed roles and volumes; replacing or deleting a saved cut requires confirmation. See [behavior, API and validation boundaries](docs/SAVED-CUTS.md). The current 138-second public demo shows saved cuts; the 9 and 11 October native runtime receipts verify the flow.
 
 ## Run
 

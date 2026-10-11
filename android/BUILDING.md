@@ -2,7 +2,7 @@
 
 This is a small Android WebView launcher for the TV surface. The backend is deployed at [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io) on Amazon Lightsail, using application revision [`2f180109`](https://github.com/himanshu748/foley/commit/2f180109c103f32fb5f47ac8e2bddc597bb32be8). The paired contributor browser supplies recordings or uploads; the launcher requests only internet access.
 
-[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, three labeled original synthetic sounds, captured emulator audio and English Deepgram narration with timed English captions. It combines the original remote-navigation recording with the additional 3 October run's full movie. The earlier [30 September tone demonstration](https://www.youtube.com/watch?v=F-AeLUo3wQ4) remains available as historical evidence for the historical APK receipt below. The current public video predates saved A/B slots.
+[Current 138-second demo](https://www.youtube.com/watch?v=8bk0C7nP4Wk): the exact 11 October Google Android TV API 34 build against the public origin, complete saved A/B premieres, labeled original synthetic inputs, captured emulator audio and English Deepgram narration/captions. The edited contributor-browser segment is separately labeled. The earlier [89-second distinct-sound demo](https://www.youtube.com/watch?v=G_K0CaCEpnk) and [30 September tone demonstration](https://www.youtube.com/watch?v=F-AeLUo3wQ4) remain available as historical evidence.
 
 ## Verified polish runtime — 11 October 2026
 

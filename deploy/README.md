@@ -2,7 +2,7 @@
 
 The public deployment is [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io), with the TV route at [/tv](https://foley.13.204.212.172.sslip.io/tv). Amazon Lightsail hosts the Node.js service, ffmpeg processing and persistent SQLite storage. Docker Compose runs one app container behind Caddy. Caddy serves publicly trusted HTTPS; only ports 80 and 443 are exposed for application traffic. SSH is restricted to the administrator's IPv4 address. The app port is not published. Caddy replaces client-supplied forwarding headers; `TRUST_PROXY=1` must not be used if users can reach the app directly.
 
-[Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, labeled synthetic input, captured emulator audio, and English Deepgram narration/captions.
+[Current 138-second demo](https://www.youtube.com/watch?v=8bk0C7nP4Wk): the 11 October public-server Google Android TV API 34 build, complete saved A/B premieres, labeled synthetic inputs, captured emulator audio, and English Deepgram narration/captions.
 
 ## Verified deployment — 11 October 2026
 
@@ -92,7 +92,7 @@ The 11 October public origin and exact installed APK passed [Judge APK run 38103
 
 Install the resulting artifact on an Android TV emulator or Fire TV, then verify remote navigation, pairing, casting, premiere, credits and the actual captured output audio. A successful APK build alone is not runtime proof. Label API fixtures or uploaded test audio explicitly. Physical-phone microphone capture is an optional additional quality check, not a requirement of the accepted emulator route. The earlier emulator test used synthetic audio and a temporary runner origin; it does not establish this hosted build.
 
-The current 89-second demo retains the distinct-sound premiere and its actual emulator output audio. Its three sound fixtures are labeled original synthetic inputs; the separate contributor-browser scene is labeled as edited stills. It predates saved A/B slots. The earlier 118.5-second tone demo remains historical evidence rather than the current submission video. The browser test studio was deleted; native test studios expire after six hours. Physical Fire TV behavior remains unverified. Android Chrome microphone recording and playback were reported successful by the user on 11 October, separately from these synthetic emulator recordings; no independent capture or latency measurement is claimed. See the [friction log](../docs/FRICTION-LOG.md) for the observed focus, recorder and bootstrap issues.
+The [current 138-second demo](https://www.youtube.com/watch?v=8bk0C7nP4Wk) includes both complete saved A/B premieres from the 11 October public-origin emulator run. Only Creature changes in Cut B. The movie sequences retain actual timestamp-correct captured emulator audio, with no substituted soundtrack. Inputs are labeled original synthetic sounds; the separate contributor-browser segment is labeled as edited actual app states. The earlier [89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk) and 118.5-second tone demo remain historical evidence. Native test studios expire after six hours. Physical Fire TV and group playtesting remain unverified. Android Chrome microphone recording and playback were reported successful by the user on 11 October; no independent capture or latency measurement is claimed. See the [friction log](../docs/FRICTION-LOG.md) for the observed focus, recorder and bootstrap issues.
 
 ## Operating the server
 

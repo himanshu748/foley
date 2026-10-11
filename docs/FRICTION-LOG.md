@@ -84,6 +84,12 @@ Observed while building and testing Foley during September 2026. These entries i
 
 Official source: [launcher selection](https://android.googlesource.com/platform/external/qemu/+/emu-master-dev/android/emulator/main-emulator.cpp), [headless PulseAudio implementation](https://android.googlesource.com/platform/external/qemu/+/refs/heads/emu-master-dev/audio/paaudio-headless-impl.c).
 
+## Follow-up — 11 October 2026
+
+The reviewed polish corrects two application issues: a completed saved-cut action could reclaim focus after a TV user moved elsewhere, and late global sizing rules could override the intended TV/large-browser button sizes. Delayed Save, Replace and Delete regressions now preserve deliberately moved focus. Measured browser checks cover the 52px TV, 57px large-browser and 44px touch floors. Source-only Claude reviews returned READY; the actual local regressions, production build and hosted acceptance passed separately.
+
+The native test retains its original 260 Hz diagnostic premiere but replaces Cut B's repeated diagnostic tone with an original deterministic alternate Creature sound. This separates an audio-detection fixture from the saved-cut sound comparison without claiming microphone input. The deployed `2f180109` build passed exact browser-bundle comparison and 14 hosted acceptance checks. [Browser/native CI](https://github.com/himanshu748/foley/actions/runs/38103195945) and [public-origin Judge APK](https://github.com/himanshu748/foley/actions/runs/38103332355) then passed on that source, retaining the diagnostic-tone detection in actual native WebM audio. The exact APK and sanitized build/audio receipts are published in the [11 October judging prerelease](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-11-polish). Physical Fire TV and group-playtest evidence remain open. On 11 October, the user reported successful microphone recording and playback in Android Chrome through the live join flow. No independent capture, latency measurement, device-model coverage or physical-TV inference is attached to that report.
+
 ## Reproduction and source
 
 Source and local checks: https://github.com/himanshu748/foley

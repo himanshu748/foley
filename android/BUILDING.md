@@ -1,10 +1,22 @@
 # Building the Fire OS launcher
 
-This is a small Android WebView launcher for the TV surface. The backend is deployed at [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io) on Amazon Lightsail, using application revision [`68b235a`](https://github.com/himanshu748/foley/commit/68b235ab5dade3dfb67ad36ae5866f24a7c72cac). The paired contributor browser supplies recordings or uploads; the launcher requests only internet access.
+This is a small Android WebView launcher for the TV surface. The backend is deployed at [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io) on Amazon Lightsail, using application revision [`2f180109`](https://github.com/himanshu748/foley/commit/2f180109c103f32fb5f47ac8e2bddc597bb32be8). The paired contributor browser supplies recordings or uploads; the launcher requests only internet access.
 
 [Current 89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): Google Android TV API 34, three labeled original synthetic sounds, captured emulator audio and English Deepgram narration with timed English captions. It combines the original remote-navigation recording with the additional 3 October run's full movie. The earlier [30 September tone demonstration](https://www.youtube.com/watch?v=F-AeLUo3wQ4) remains available as historical evidence for the historical APK receipt below. The current public video predates saved A/B slots.
 
-## Verified v1.1 judge build (9 October 2026)
+## Verified polish runtime — 11 October 2026
+
+Application/APK source: `2f180109c103f32fb5f47ac8e2bddc597bb32be8`. [Browser/native CI 38103195945](https://github.com/himanshu748/foley/actions/runs/38103195945) and [public-origin Judge APK run 38103332355](https://github.com/himanshu748/foley/actions/runs/38103332355) both passed on that exact source. The public-origin run installs the exported APK, checks its bytes against the build metadata and exercises Google Android TV API 34.
+
+The four premieres retain the initial 260 Hz diagnostic fixture and the distinct three-sound soundtrack, followed by saved A and saved B. Cut B now changes only Creature to an original deterministic alternate growl/chirp instead of reusing the diagnostic tone. Remote navigation, saved credits, four receipts and preservation of the active B casts/revision passed. The native WebM audio check detected the first diagnostic tone; no fixture WAV replaces the recorded emulator output. These remain synthetic-input emulator checks, not physical Fire TV or microphone recordings.
+
+Download the [11 October judging prerelease](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-11-polish). APK SHA-256: `4bffdc992224101195e69a5733252c9876559c484173b45ef3bd08908627511b`. Its `build.json`, checksum and `audio-verification.json` bind this exact artifact to source, origin and recorded output. The APK is debug-signed for sideloading; uninstall a differently signed prior test APK before installing it, then pair again.
+
+## Phone feedback — 11 October 2026
+
+The user reported that recording and playback succeeded in Android Chrome through the deployed Foley join flow. This is user-reported real-phone microphone/playback evidence, not a measured or independently captured test. It does not establish Android APK use on physical TV hardware, group playtesting, latency, or compatibility across phone models.
+
+## Historical v1.1 judge build (9 October 2026)
 
 Download the [v1.1 judging prerelease](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-09-v1-1). Application/APK source: `68b235ab5dade3dfb67ad36ae5866f24a7c72cac`. APK SHA-256: `ad595d936b7ff4d5375be624f2195b858fd5a90ae4cbd0c6a2afbdb74c342d50`. The release's `build.json` binds this source, the public HTTPS origin and exact installed artifact. These identify the tested application independently of later documentation-only commits.
 

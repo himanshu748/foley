@@ -133,5 +133,5 @@ Lightsail hosts the backend; Foley does not use an AWS SDK, Bedrock, Polly or AI
 
 - [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) and [scheduled AudioBuffer playback](https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode/start).
 - [Fire TV controller behavior](https://developer.amazon.com/docs/fire-tv/controller-behavior-guidelines.html).
-- [Three.js WebGLRenderer](https://threejs.org/docs/pages/WebGLRenderer.html) and [GPU resource disposal](https://threejs.org/manual/en/how-to-dispose-of-objects.html).
+- [Three.js WebGLRenderer](https://threejs.org/docs/pages/WebGLRenderer.html) and [GPU resource disposal](https://threejs.org/manual/pages/how-to-dispose-of-objects.html).
 - [Amazon hackathon rules](https://amazonappdev2026.devpost.com/rules).

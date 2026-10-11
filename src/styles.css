@@ -1045,7 +1045,7 @@ input::placeholder {
 .end-confirm .button {
   font-size: 12px;
   padding: 12px;
-  min-height: 43px;
+  min-height: 44px;
 }
 .alert {
   max-width: 1320px;
@@ -1139,7 +1139,6 @@ input::placeholder {
   }
   .transport .button {
     font-size: 16px;
-    min-height: 57px;
   }
   .transport > span {
     font-size: 14px;
@@ -1858,6 +1857,19 @@ input::placeholder {
 #premiere-panel {
   scroll-margin-top: 24px;
 }
+/* Global touch floors follow the compact rules, before larger-screen floors. */
+.small-button,
+.upload-take .button,
+.alert button,
+.fullscreen-button,
+.transport .button {
+  min-height: 44px;
+}
+@media (min-width: 1700px) {
+  .transport .button {
+    min-height: 57px;
+  }
+}
 [data-display="tv"] :focus {
   outline: 4px solid #b74028;
   outline-offset: 5px;
@@ -2081,15 +2093,6 @@ button,
   .studio-route {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-.small-button,
-.upload-take .button,
-.alert button,
-.fullscreen-button {
-  min-height: 44px;
-}
-.transport .button {
-  min-height: 44px;
 }
 
 .fullscreen-button,

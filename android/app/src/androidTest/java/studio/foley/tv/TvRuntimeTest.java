@@ -222,8 +222,28 @@ public class TvRuntimeTest {
             key(KeyEvent.KEYCODE_DPAD_CENTER);
             until("document.querySelector('[data-cut-slot=A]').dataset.cutId.length>0");
             state=request(base,"GET",host,null,false);
-            request(base+"/cast","POST",host,json(new JSONObject().put("role","creature").put("clipId",clip.getString("id")).put("revision",state.getInt("revision")).put("volume",0.8)),false);
-            until("document.querySelectorAll('.role-tab span')[2].textContent==='Generated TV test tone'");
+            JSONObject comparisonACasts=state.getJSONObject("casts");
+            byte[] alternateSound=SyntheticSound.wav("creature-alternate");
+            assertArrayEquals("Alternate sound is deterministic",alternateSound,SyntheticSound.wav("creature-alternate"));
+            assertFalse("Alternate sound differs from Creature A",java.util.Arrays.equals(alternateSound,SyntheticSound.wav("creature")));
+            ByteBuffer alternatePcm=ByteBuffer.wrap(alternateSound).order(ByteOrder.LITTLE_ENDIAN);
+            assertEquals("Alternate fixture is one second of mono PCM16",96044,alternateSound.length);
+            assertEquals("Alternate fixture begins at silence",0,alternatePcm.getShort(44));
+            assertEquals("Alternate fixture ends at silence",0,alternatePcm.getShort(alternateSound.length-2));
+            int peak=0;
+            for(int sample=44;sample<alternateSound.length;sample+=2)
+                peak=Math.max(peak,Math.abs((int)alternatePcm.getShort(sample)));
+            assertTrue("Alternate fixture is audible with ample nonclipping headroom",peak>2000 && peak<9000);
+            JSONObject alternateCreature=request(base+"/clips","POST",crew.getString("testCookie"),alternateSound,true,"Synthetic alternate creature fixture");
+            // Upload advances the studio revision; preserve A above, then cast
+            // using the fresh state rather than the pre-upload revision.
+            state=request(base,"GET",host,null,false);
+            request(base+"/cast","POST",host,json(new JSONObject().put("role","creature").put("clipId",alternateCreature.getString("id")).put("revision",state.getInt("revision")).put("volume",0.8)),false);
+            until("document.querySelectorAll('.role-tab span')[2].textContent==='Synthetic alternate creature fixture'");
+            state=request(base,"GET",host,null,false);
+            assertNotEquals("Alternate Creature uses a distinct original synthetic take",replacementIds.getString("creature"),state.getJSONObject("casts").getJSONObject("creature").getString("clipId"));
+            for(String unchangedRole:new String[]{"footsteps","weather"})
+                assertEquals("Only Creature changes for Cut B; other takes and volumes stay fixed",comparisonACasts.getJSONObject(unchangedRole).toString(),state.getJSONObject("casts").getJSONObject(unchangedRole).toString());
             until("!document.querySelector('[data-cut-slot=B] [data-cut-action=save]').disabled");
             read("document.querySelector('[data-cut-slot=B] [data-cut-action=save]').focus()");
             key(KeyEvent.KEYCODE_DPAD_CENTER);
@@ -250,7 +270,7 @@ public class TvRuntimeTest {
             assertEquals("Saved replay appends a third receipt",3,state.getInt("premieres"));
             assertEquals("Saved replay preserves the current edit",activeBefore,state.getJSONObject("casts").toString());
             assertEquals("Saved replay preserves the current revision",revisionBefore,state.getInt("revision"));
-            assertEquals("Current Creature remains Cut B",clip.getString("id"),state.getJSONObject("casts").getJSONObject("creature").getString("clipId"));
+            assertEquals("Current Creature remains Cut B",alternateCreature.getString("id"),state.getJSONObject("casts").getJSONObject("creature").getString("clipId"));
             JSONObject saved=request(base+"/cuts","GET",host,null,false);
             assertEquals("Both comparison slots persist",2,saved.getJSONArray("cuts").length());
 

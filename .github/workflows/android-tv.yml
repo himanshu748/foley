@@ -25,6 +25,7 @@ jobs:
       - name: Exercise TV, saved-cut races and recorder recovery
         run: |
           npm run test:tv
+          node tests/polish-browser.mjs
           npm run test:recorder
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

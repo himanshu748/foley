@@ -649,7 +649,11 @@ function Studio({
       card?.querySelector<HTMLElement>(
         '[data-cut-action="save"]:not(:disabled), [data-cut-action="cancel"]:not(:disabled)',
       ) || card;
-    if (isTV) target?.focus({ preventScroll: true });
+    const active = document.activeElement;
+    // Recover focus lost when an action replaces its own control, but respect
+    // a deliberate move to another stage while the request was pending.
+    if (isTV && (!active || active === document.body || active === card))
+      target?.focus({ preventScroll: true });
     pendingCutFocus.current = null;
   }, [busy, cuts, cutConfirm]);
   const cutAction = (slot: CutSlot, label: string, fn: () => Promise<void>) => {
@@ -1360,7 +1364,9 @@ function Studio({
                                 await api(base + `/cuts/${slot}`, "DELETE", {
                                   cutId: confirmation.id,
                                 });
-                              dismissCutConfirm();
+                              // Completion must not pull focus back from a stage
+                              // the user chose while this request was pending.
+                              setCutConfirm(null);
                             } finally {
                               await refreshCuts();
                             }

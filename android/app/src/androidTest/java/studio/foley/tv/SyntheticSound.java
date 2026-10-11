@@ -8,7 +8,7 @@ import java.util.Random;
 /** Original deterministic sound-design fixtures, never microphone recordings. */
 final class SyntheticSound {
     static byte[] wav(String role) {
-        if (!role.equals("footsteps") && !role.equals("weather") && !role.equals("creature"))
+        if (!role.equals("footsteps") && !role.equals("weather") && !role.equals("creature") && !role.equals("creature-alternate"))
             throw new IllegalArgumentException("Unknown synthetic role");
         int rate = 48000, frames = rate;
         ByteBuffer wav = ByteBuffer.allocate(44 + frames * 2).order(ByteOrder.LITTLE_ENDIAN);
@@ -26,7 +26,15 @@ final class SyntheticSound {
                 value = Math.exp(-t * 22) * (.65 * Math.sin(2 * Math.PI * 110 * t) + .35 * noise);
             else if (role.equals("weather"))
                 value = filtered * 3 * (.65 + .35 * Math.sin(Math.PI * t));
-            else
+            else if (role.equals("creature-alternate")) {
+                // A short original fluttering growl with a descending chirp.
+                // The squared envelope reaches silence before the WAV ends.
+                double envelope = t < .78 ? Math.pow(Math.sin(Math.PI * t / .78), 2) : 0;
+                double growl = Math.sin(2 * Math.PI * (95 * t + 15 * t * t));
+                double flutter = .7 + .3 * Math.sin(2 * Math.PI * 19 * t);
+                double chirp = Math.sin(2 * Math.PI * (900 * t - 420 * t * t));
+                value = envelope * (.62 * growl * flutter + .28 * chirp);
+            } else
                 value = Math.sin(2 * Math.PI * (280 * t + 220 * t * t)) * Math.sin(Math.PI * t);
             // Short edge fades keep the repeated weather clip from clicking.
             double fade = Math.min(1, Math.min(t / .005, (1 - t) / .02));

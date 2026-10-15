@@ -1,0 +1,53 @@
+name: Fire OS sideload APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'scripts/fire-tv-*.sh'
+      - '.github/workflows/fireos-apk.yml'
+permissions:
+  contents: read
+jobs:
+  signed-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FOLEY_ORIGIN: https://foley.13.204.212.172.sslip.io
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build signed sideload APK
+        working-directory: android
+        run: |
+          test ! -d app/src/debug
+          ./gradlew --no-daemon assembleDebug "-PfoleyUrl=$FOLEY_ORIGIN"
+      - name: Verify signature and write artifact receipt
+        run: |
+          mkdir -p fireos-build
+          cp android/app/build/outputs/apk/debug/app-debug.apk fireos-build/foley-fireos.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs fireos-build/foley-fireos.apk > fireos-build/signature.txt
+          python3 - <<'PYTHON'
+          import hashlib, json, os, pathlib
+          apk = pathlib.Path('fireos-build/foley-fireos.apk')
+          digest = hashlib.sha256(apk.read_bytes()).hexdigest()
+          pathlib.Path('fireos-build/SHA256SUMS').write_text(digest + '  foley-fireos.apk\n')
+          pathlib.Path('fireos-build/build.json').write_text(json.dumps({
+              'source_commit': os.environ['GITHUB_SHA'],
+              'origin': os.environ['FOLEY_ORIGIN'],
+              'apk_sha256': digest,
+              'signing': 'Android debug signing; sideload only; not an Appstore release',
+              'fire_tv_runtime_verified': False,
+              'vega_implemented': False
+          }, indent=2) + '\n')
+          PYTHON
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: foley-fireos-sideload
+          path: fireos-build/
+          retention-days: 30
+          if-no-files-found: error

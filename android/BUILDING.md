@@ -1,3 +1,5 @@
+> 15 October correction: Google Android TV emulator footage is historical engineering evidence and does not satisfy the requested Fire TV judging gate. Use the [physical Fire TV capture guide](../docs/FIRE-TV-CAPTURE.md). Vega is not implemented; physical Fire TV verification remains pending.
+
 # Building the Fire OS launcher
 
 This is a small Android WebView launcher for the TV surface. The backend is deployed at [https://foley.13.204.212.172.sslip.io](https://foley.13.204.212.172.sslip.io) on Amazon Lightsail, using application revision [`2f180109`](https://github.com/himanshu748/foley/commit/2f180109c103f32fb5f47ac8e2bddc597bb32be8). The paired contributor browser supplies recordings or uploads; the launcher requests only internet access.
@@ -30,7 +32,7 @@ Download the [judging APK release](https://github.com/himanshu748/foley/releases
 
 APK source: `dd586e075dc69e6174cb7fe481cd3a9caeb5f9dc`. APK SHA-256: `6a86e6e77231aa7c4a376e700c48a7dcbd8d3cf68d50bf6bcbaa6289da59de0e`. The release's `build.json` identifies the configured origin and runtime. This is a debug-signed sideload build; uninstall an earlier Foley test APK before installing a build signed by another CI key.
 
-Input came from an API test crew using one synthetic take in all three roles. Physical phone recording, Fire TV hardware and group playtesting remain separate quality checks. Google's Android TV emulator is accepted by the [event FAQ](https://amazonappdev2026.devpost.com/details/faqs).
+Input came from an API test crew using one synthetic take in all three roles. Physical phone recording, Fire TV hardware and group playtesting remain separate quality checks. A real Fire TV or the official Vega Virtual Device is required for the requested judging evidence.
 
 ## Verified local tool inventory — 8 September 2026
 
@@ -71,7 +73,7 @@ From this `android/` directory, run:
 ./gradlew assembleDebug -PfoleyUrl=https://foley.13.204.212.172.sslip.io
 ```
 
-The first wrapper run downloads the pinned Gradle distribution if it is not already cached. Android Gradle dependencies may also need downloading. `foleyUrl` must be an HTTPS origin, without a path, credentials, query or fragment. Release signing is not configured. The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
+The first wrapper run downloads the pinned Gradle distribution if it is not already cached. Android Gradle dependencies may also need downloading. `foleyUrl` must be an HTTPS origin, without a path, credentials, query or fragment. Appstore release signing is not configured; the Fire OS sideload workflow verifies its debug signature. The debug APK will be at `app/build/outputs/apk/debug/app-debug.apk`.
 
 With a permitted Fire OS test device connected and debugging enabled:
 

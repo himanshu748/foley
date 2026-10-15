@@ -1,3 +1,5 @@
+> 15 October correction: Google Android TV emulator footage is historical engineering evidence and does not satisfy the requested Fire TV judging gate. Use the [physical Fire TV capture guide](FIRE-TV-CAPTURE.md). Vega is not implemented; physical Fire TV verification remains pending.
+
 # Try Foley
 
 Foley gives a living-room group a shared creative task: make the soundtrack for the same twenty-second picture, then change its mood by recasting a sound. The TV directs the room; paired phones contribute takes.
@@ -9,7 +11,7 @@ Foley gives a living-room group a shared creative task: make the soundtrack for 
 5. Change only Creature, save B, then play A and B. The cards identify the changed role and level; each replay keeps the current edit intact. Replacing an existing slot requires confirmation.
 6. End the studio when finished; this removes its active recordings and access.
 
-The [current 138-second public video](https://www.youtube.com/watch?v=8bk0C7nP4Wk) shows the 11 October Google Android TV API 34 build against the public HTTPS server. It includes both complete saved A and B premieres, with only Creature changed in B and captured native emulator output audio. The original test inputs are labeled synthetic; the contributor-browser segment is labeled as edited actual app states. Deepgram narration and timed English captions explain the flow. The [event FAQ](https://amazonappdev2026.devpost.com/details/faqs) accepts Google's Android TV emulator.
+The [current 138-second public video](https://www.youtube.com/watch?v=8bk0C7nP4Wk) shows the 11 October Google Android TV API 34 build against the public HTTPS server. It includes both complete saved A and B premieres, with only Creature changed in B and captured native emulator output audio. The original test inputs are labeled synthetic; the contributor-browser segment is labeled as edited actual app states. Deepgram narration and timed English captions explain the flow. This Google emulator run does not satisfy the requested Fire TV judging gate.
 
 The deployed application is [`2f180109c103f32fb5f47ac8e2bddc597bb32be8`](https://github.com/himanshu748/foley/commit/2f180109c103f32fb5f47ac8e2bddc597bb32be8). The [11 October browser/native CI run](https://github.com/himanshu748/foley/actions/runs/38103195945) and [public-origin Judge APK run](https://github.com/himanshu748/foley/actions/runs/38103332355) passed on that source. The latter installed the exported APK, verified its checksum, played all four premieres, replayed saved A and B without changing the active B edit, and detected the generated diagnostic tone in recorded native output audio. The deployed browser bundle matched the reviewed source and passed 14 hosted acceptance checks; see [deployment evidence](../deploy/README.md).
 

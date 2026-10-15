@@ -4,7 +4,13 @@
 
 Your living room is the sound crew for an original twenty-second movie. Start a studio, pair a phone, record or upload short sounds, cast them as footsteps/weather/creature, premiere the synchronized film, and recast a role for another cut.
 
-[Current 138-second demo](https://www.youtube.com/watch?v=8bk0C7nP4Wk): the 11 October Google Android TV API 34 build against the public HTTPS server, complete saved A/B premieres with captured emulator audio, labeled original synthetic sounds, and Deepgram narration with timed English captions. The edited contributor-browser segment uses actual 9 October app states. Physical Fire TV and group playtesting remain unverified. On 11 October, the user reported successful recording and playback in Android Chrome through the live Foley join flow; this is user-reported phone evidence, not an independently captured or measured test.
+## Fire TV judging status — 15 October 2026
+
+**A qualifying Fire TV recording is still required.** Foley has a Fire OS APK client, a shared TV web interface and a phone recorder. The existing [138-second video](https://www.youtube.com/watch?v=8bk0C7nP4Wk) is historical Google Android TV API 34 emulator footage with synthetic inputs and an edited contributor segment. It does not establish the required real Fire TV or Vega Virtual Device flow. Physical Fire TV behavior remains unverified.
+
+Use the [Fire OS sideload guide and fresh signed APK workflow](docs/FIRE-TV-CAPTURE.md). The APK uses Android debug signing for sideloading; it is not an Appstore release. CI builds and verifies the signature, then records its source, origin and checksum without claiming a device run. [The 2:45 live capture script and shot list](docs/FIRE-TV-CAPTURE.md#shot-list--245) cover start, phone pairing, human recording, casting, premiere and recasting. A replacement qualifying video has not been recorded or uploaded.
+
+Vega is not implemented. This Mac had about 3.1 GB free on 15 October, below Amazon's documented 20 GB setup requirement, with no Vega CLI on PATH. [Exact Vega setup steps and the blocked gate](docs/VEGA-SETUP.md) are documented. The Fire OS fallback preserves the existing backend and phone flow.
 
 The [hosted TV interface](https://foley.13.204.212.172.sslip.io/tv) runs against a persistent backend on Amazon Lightsail. The app also runs locally without an AWS account or credentials. New studios start empty, with no generated demonstration recordings or prefilled cast.
 
@@ -107,7 +113,7 @@ Open `/tv` for the remote-oriented start screen, saved-studio resume and Pair �
 
 The launcher opens `/tv`, provides a native Retry screen after a main-frame connection error, delegates Back to the app's current playback/confirmation state, and requests audio suspension when the Activity pauses. The wrapper was compiled and exercised on Google’s Android TV API 34 emulator on 11 October 2026 in [browser/native CI](https://github.com/himanshu748/foley/actions/runs/38103195945), on source `2f180109c103f32fb5f47ac8e2bddc597bb32be8`. Physical Fire OS behavior remains unverified.
 
-Requirements: Android SDK 35, JDK 17 and Gradle 8.11.1 compatible with Android Gradle Plugin 8.9.2. The Gradle wrapper is included with a pinned distribution checksum. Release signing is not configured. See `android/BUILDING.md` for the verified local tool inventory and setup. Then:
+Requirements: Android SDK 35, JDK 17 and Gradle 8.11.1 compatible with Android Gradle Plugin 8.9.2. The Gradle wrapper is included with a pinned distribution checksum. Appstore release signing is not configured; the sideload workflow produces and verifies a debug-signed APK. See `android/BUILDING.md` for the verified local tool inventory and setup. Then:
 
 ```sh
 cd android
@@ -124,10 +130,16 @@ The full-source Claude review returned READY with no P0/P1 findings. On 11 Octob
 ## Remaining external validation
 
 - Validate Activity suspend/resume on physical targets. The current native run covers D-pad, in-app Back/resume and captured synthetic-audio playback on Google Android TV API 34.
-- Expand device/codec coverage beyond the user-reported 11 October Android Chrome recording/playback success. That report does not establish other phones, physical TV audio quality or measured latency. The accepted Android TV emulator path does not require physical hardware.
+- Expand device/codec coverage beyond the user-reported 11 October Android Chrome recording/playback success. That report does not establish other phones, physical TV audio quality or measured latency. The Google Android TV emulator receipts do not satisfy the requested Fire TV judging gate. A physical Fire TV or the official Vega Virtual Device must appear in the replacement recording.
 - Playtest with a real small group. Time-to-first-premiere and willingness to remix remain unmeasured.
 
 Lightsail hosts the backend; Foley does not use an AWS SDK, Bedrock, Polly or AI inference. The deployed revision's `/api/health` response includes a hardcoded legacy `aws: false` field. That field does not detect the hosting provider; the actual hosting integration is documented in [deploy/README.md](deploy/README.md).
+
+## AWS use and development disclosure
+
+Amazon Lightsail hosts the Node.js backend, ffmpeg and SQLite behind Caddy HTTPS, as recorded in the [dated deployment receipts](deploy/README.md). Local use needs no AWS account. Hosting is the AWS integration; Foley does not call Bedrock, AgentCore or an AWS model API. The historical health field `aws: false` is a legacy constant, not hosting-provider detection. Kiro use is not claimed. OpenAI Codex assisted the 15 October code/documentation changes; earlier review provenance is listed above. Copy an accurate tool disclosure into the submission only if requested by its form.
+
+[MIT license](LICENSE) · [Observed friction](FRICTION.md) · [Product feedback draft for the owner](PRODUCT-FEEDBACK.md)
 
 ## Primary references
 

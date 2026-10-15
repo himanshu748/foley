@@ -1,3 +1,5 @@
+> 15 October correction: Google Android TV emulator footage is historical engineering evidence and does not satisfy the requested Fire TV judging gate. Use the [physical Fire TV capture guide](docs/FIRE-TV-CAPTURE.md). Vega is not implemented; physical Fire TV verification remains pending.
+
 # Foley: TV delivery and demo evidence
 
 Updated 9 October 2026. Application [`68b235a`](https://github.com/himanshu748/foley/commit/68b235ab5dade3dfb67ad36ae5866f24a7c72cac) is deployed on [Amazon Lightsail](https://foley.13.204.212.172.sslip.io/tv). [Browser/native CI](https://github.com/himanshu748/foley/actions/runs/37896025801) and [public-origin Judge APK run 37896967098](https://github.com/himanshu748/foley/actions/runs/37896967098) passed. The exact tested APK is in the [9 October v1.1 judging prerelease](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-09-v1-1). The native run covers four full premieres, saved A/B replay and unchanged current B editing state, with output audio captured from the emulator. Google Android TV API 34 evidence does not establish physical Fire TV performance or physical phone capture.
@@ -41,7 +43,7 @@ Once a Vega app exists and the SDK is installed, the official flow uses `vega vi
 
 ## Future group walkthrough (proposed 2 minutes 45 seconds)
 
-Capture the app on an actual Fire TV device or the FAQ-accepted Android TV emulator. Keep the TV/runtime identification visible at the beginning. Show the phone separately when it records.
+Capture the app on an actual Fire TV device or the official Vega Virtual Device after implementing a Vega client. Keep the TV/runtime identification visible at the beginning. Show the phone separately when it records.
 
 | Time | Show | What it establishes |
 | --- | --- | --- |
@@ -77,7 +79,7 @@ Human playtesting, time-to-first-premiere, recognizable mix quality and willingn
 
 A prior run exposed a focus bug: disabling the Premiere button moved focus to navigation and scrolled the picture offscreen. Playback now transfers focus to the picture before preparation and to Stop after preparation. The successful native screenshots were inspected. The saved H.264 recording is 1920×1080 and 71.814 seconds, without an audio track. Input audio is a generated test fixture, not a phone recording.
 
-The public MIT source is https://github.com/himanshu748/foley. That earlier CI APK targets an ephemeral runner-only HTTPS server. The later public Lightsail deployment has passed HTTPS, pairing, private audio, casting, persistence and deletion checks. The later [public-origin run](https://github.com/himanshu748/foley/actions/runs/36752896970) passed its native output-audio gate and is the source of the [judging APK release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). Physical phone recording and group playtesting remain additional quality checks; the [event FAQ](https://amazonappdev2026.devpost.com/details/faqs) permits an Android TV emulator submission.
+The public MIT source is https://github.com/himanshu748/foley. That earlier CI APK targets an ephemeral runner-only HTTPS server. The later public Lightsail deployment has passed HTTPS, pairing, private audio, casting, persistence and deletion checks. The later [public-origin run](https://github.com/himanshu748/foley/actions/runs/36752896970) passed its native output-audio gate and is the source of the [judging APK release](https://github.com/himanshu748/foley/releases/tag/judge-2026-09-30). Physical phone recording and group playtesting remain additional quality checks; the requested qualifying Fire TV recording is still pending.
 
 
 ## Verified v1.1 native run — 9 October

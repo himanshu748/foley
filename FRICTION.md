@@ -1,0 +1,13 @@
+# Observed friction
+
+15 October 2026. This log records observed development work; older observations are in [the dated integration log](docs/FRICTION-LOG.md). It contains no claimed user research or device run.
+
+| Task | Steps | Expected | Actual | Severity | Workaround | Suggestion |
+| --- | --- | --- | --- | --- | --- | --- |
+| Prepare Vega on the Mac | Check `vega` on PATH, normal SDK locations and `df -h .` | Installed SDK or enough space for Amazon's 20 GB prerequisite | No CLI found; about 3.1 GB available | Blocking Vega port | Use existing Fire OS APK path; owner makes space before SDK setup | Show disk-space preflight before downloading SDK packages |
+| Recheck judging evidence | Read README, judge guide and native workflow | Fire TV/Vega evidence clearly separated | Docs described Google Android TV as accepted; existing video is that emulator with synthetic input | High | Corrected headline/status and added physical-device capture guide | Include explicit runtime identity in every capture receipt |
+| Refresh remote source | Run git remote lookup in sandbox | GitHub reachable | DNS blocked; permitted network execution succeeded | Low, environment | Use authorized network execution | Distinguish network failure from expired authentication |
+
+| Run local tests | Invoke npm, inspect runtime and HTTP failures | Node 22 and loopback access | Shell npm selected Homebrew Node 24; sandbox denied listen on 127.0.0.1 | Medium, environment | Pin Node 22.17.1 on PATH and run with permitted localhost access; 31 unit/API checks then passed | Verify runtime executable before a test run |
+
+Owner confirmation required: physical Fire TV model, microphone/TV output, remote lifecycle behavior and new recording. They have not been exercised in this pass.

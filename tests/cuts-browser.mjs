@@ -397,6 +397,11 @@ try {
     buffer: wav(780),
   });
   await phone.getByLabel("Audition selected audio file").waitFor();
+  // The audio element mounts before the file effect attaches its object URL.
+  await phone.waitForFunction(() =>
+    document.querySelector('audio[aria-label="Audition selected audio file"]')
+      ?.getAttribute("src")?.startsWith("blob:"),
+  );
   assert.ok(
     await phone.getByLabel("Audition selected audio file").getAttribute("src"),
   );

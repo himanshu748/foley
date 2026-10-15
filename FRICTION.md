@@ -10,4 +10,6 @@
 
 | Run local tests | Invoke npm, inspect runtime and HTTP failures | Node 22 and loopback access | Shell npm selected Homebrew Node 24; sandbox denied listen on 127.0.0.1 | Medium, environment | Pin Node 22.17.1 on PATH and run with permitted localhost access; 31 unit/API checks then passed | Verify runtime executable before a test run |
 
+| Verify saved-cut phone audition | Select an audio file and assert its preview source | Preview has a blob URL | Browser test reached the mounted audio before the React effect attached the URL | Low, test timing | Wait for the blob source while retaining the assertion | Synchronize async UI checks to observable readiness |
+
 Owner confirmation required: physical Fire TV model, microphone/TV output, remote lifecycle behavior and new recording. They have not been exercised in this pass.

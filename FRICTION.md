@@ -12,4 +12,6 @@
 
 | Verify saved-cut phone audition | Select an audio file and assert its preview source | Preview has a blob URL | Browser test reached the mounted audio before the React effect attached the URL | Low, test timing | Wait for the blob source while retaining the assertion | Synchronize async UI checks to observable readiness |
 
+| Repeat native/browser CI | Run the same application after a test-only commit | Pairing-expiry failure test observes the injected 503 | Browser job timed out waiting for the alert while the test clock was paused; preceding run passed | Medium, test clock | Wait for the actual failed response and advance the paused render clock before checking the alert | Synchronize response-render tests explicitly |
+
 Owner confirmation required: physical Fire TV model, microphone/TV output, remote lifecycle behavior and new recording. They have not been exercised in this pass.

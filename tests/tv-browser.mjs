@@ -237,7 +237,13 @@ try {
   await page.route("**/api/sessions/*/code", (route) => route.fulfill({
     status: 503, contentType: "application/json", body: JSON.stringify({ error: "Pairing refresh unavailable. Try again." }),
   }));
+  const failedRefresh = page.waitForResponse((response) =>
+    response.url() === `${url}/api/sessions/${sid}/code` &&
+    response.request().method() === "POST" && response.status() === 503);
   await page.keyboard.press("Enter");
+  await failedRefresh;
+  // The intentionally paused clock must allow React's response render to run.
+  await page.clock.runFor(100);
   await page.getByRole("alert").getByText("Pairing refresh unavailable. Try again.").waitFor();
   assert.equal(await page.locator(".qr").count(), 0);
   assert.equal(await page.getByRole("button", { name: "Copy link", exact: true }).getAttribute("aria-disabled"), "true");

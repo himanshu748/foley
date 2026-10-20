@@ -4,7 +4,7 @@
 
 Updated 9 October 2026. Application [`68b235a`](https://github.com/himanshu748/foley/commit/68b235ab5dade3dfb67ad36ae5866f24a7c72cac) is deployed on [Amazon Lightsail](https://foley.13.204.212.172.sslip.io/tv). [Browser/native CI](https://github.com/himanshu748/foley/actions/runs/37896025801) and [public-origin Judge APK run 37896967098](https://github.com/himanshu748/foley/actions/runs/37896967098) passed. The exact tested APK is in the [9 October v1.1 judging prerelease](https://github.com/himanshu748/foley/releases/tag/judge-2026-10-09-v1-1). The native run covers four full premieres, saved A/B replay and unchanged current B editing state, with output audio captured from the emulator. Google Android TV API 34 evidence does not establish physical Fire TV performance or physical phone capture.
 
-[Current 89-second public demo](https://www.youtube.com/watch?v=G_K0CaCEpnk): labeled original synthetic sounds, captured emulator audio and English Deepgram narration/captions. It predates saved A/B slots; no replacement public video is claimed here.
+[Current 138-second public demo](https://www.youtube.com/watch?v=8bk0C7nP4Wk): the 11 October Google Android TV API 34 build against the public HTTPS server, with saved A and B premieres, labeled synthetic inputs, captured emulator audio and English Deepgram narration/captions. The earlier [89-second demo](https://www.youtube.com/watch?v=G_K0CaCEpnk) predates saved A/B slots.
 
 ## What the TV controls now do
 

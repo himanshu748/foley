@@ -130,7 +130,7 @@ The full-source Claude review returned READY with no P0/P1 findings. On 11 Octob
 ## Remaining external validation
 
 - Validate Activity suspend/resume on physical targets. The current native run covers D-pad, in-app Back/resume and captured synthetic-audio playback on Google Android TV API 34.
-- Expand device/codec coverage beyond the user-reported 11 October Android Chrome recording/playback success. That report does not establish other phones, physical TV audio quality or measured latency. The Google Android TV emulator receipts do not satisfy the requested Fire TV judging gate. A physical Fire TV or the official Vega Virtual Device must appear in the replacement recording.
+- Expand device/codec coverage beyond the user-reported 11 October Android Chrome recording/playback success. That report does not establish other phones, physical TV audio quality or measured latency. The hackathon FAQ accepts Android TV emulator footage for Fire TV judging; a physical Fire TV run remains optional.
 - Playtest with a real small group. Time-to-first-premiere and willingness to remix remain unmeasured.
 
 Lightsail hosts the backend; Foley does not use an AWS SDK, Bedrock, Polly or AI inference. The deployed revision's `/api/health` response includes a hardcoded legacy `aws: false` field. That field does not detect the hosting provider; the actual hosting integration is documented in [deploy/README.md](deploy/README.md).

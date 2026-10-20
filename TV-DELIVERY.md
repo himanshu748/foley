@@ -1,4 +1,4 @@
-> 15 October correction: Google Android TV emulator footage is historical engineering evidence and does not satisfy the requested Fire TV judging gate. Use the [physical Fire TV capture guide](docs/FIRE-TV-CAPTURE.md). Vega is not implemented; physical Fire TV verification remains pending.
+> 20 October note: The [hackathon FAQ](https://amazonappdev2026.devpost.com/details/faqs) states that for Fire TV "an emulator (Android TV Emulator or the Fire TV/Vega simulator) is fine", so the Android TV emulator recording satisfies the device requirement. The [physical Fire TV capture guide](docs/FIRE-TV-CAPTURE.md) is optional. Vega is not implemented and physical Fire TV hardware has not been tested.
 
 # Foley: TV delivery and demo evidence
 
